@@ -1,0 +1,7 @@
+{
+	"poster": "/story/poster.webp",
+	"sets": {
+		"desktop": { "count": 200, "width": 1280, "height": 720, "pattern": "/story/desktop/f_{i}.webp", "pad": 4 },
+		"mobile": { "count": 200, "width": 720, "height": 960, "pattern": "/story/mobile/f_{i}.webp", "pad": 4 }
+	}
+}
