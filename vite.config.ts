@@ -4,6 +4,9 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	// gsap ships ES modules as plain .js without "type": "module"; Node < 22 can't import
+	// gsap/ScrollTrigger from the server bundle (500 on Vercel), so bundle it instead.
+	ssr: { noExternal: ['gsap', 'lenis'] },
 	plugins: [
 		tailwindcss(),
 		sveltekit({
