@@ -9,7 +9,9 @@ import { adminCount, isEmail } from '#lib/server/admin.ts';
 // prove they control the deployment by entering its BETTER_AUTH_SECRET.
 
 export const load: PageServerLoad = async () => {
-	if ((await adminCount()) > 0) redirect(303, '/admin/login');
+	// Without a working database the login page explains what's missing.
+	const admins = await adminCount().catch(() => null);
+	if (admins === null || admins > 0) redirect(303, '/admin/login');
 };
 
 function sameSecret(given: string) {
