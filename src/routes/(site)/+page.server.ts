@@ -1,9 +1,19 @@
 import { fail } from '@sveltejs/kit';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { contactMessage } from '#lib/server/db/schema.ts';
+import { upcomingEvents } from '#lib/server/events.ts';
 
 const text = (data: FormData, key: string) => String(data.get(key) ?? '').trim();
+
+export const load: PageServerLoad = async () => {
+	// The home page must render even when the database is down or not yet configured.
+	const events = await upcomingEvents(3).catch((e) => {
+		console.error('[home] events unavailable:', e);
+		return [];
+	});
+	return { events };
+};
 
 export const actions: Actions = {
 	contact: async ({ request }) => {

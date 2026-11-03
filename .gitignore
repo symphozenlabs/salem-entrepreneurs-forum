@@ -27,3 +27,6 @@ story/keyframes/raw/
 story/keyframes/*.zip
 story/clips/
 .frames-tmp/
+
+# Local embedded database (DATABASE_URL=pglite:./.pglite)
+.pglite

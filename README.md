@@ -1,54 +1,50 @@
-# sv
+# Salem Entrepreneurs Forum
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+The forum's website and admin: SvelteKit on Vercel, Neon Postgres via Drizzle, Better Auth for sign-in.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+## Develop
 
 ```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-npx sv@1.2.0 create --template minimal --types ts --add prettier eslint tailwindcss="plugins:forms" sveltekit-adapter="adapter:vercel" drizzle="database:postgresql+postgresql:neon" better-auth="demo:none" --install npm .
-```
-
-## Adding features
-
-Add features to your project with `sv add`:
-
-```sh
-npx sv add
-```
-
-For example, to add Tailwind CSS:
-
-```sh
-npx sv add tailwindcss
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+npm install
+cp .env.example .env   # then fill it in, see below
+npm run db:push        # create or update the tables
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
-
-To create a production version of your app:
+`DATABASE_URL` can point at Neon, or at an embedded local database so you never touch real data:
 
 ```sh
-npm run build
+DATABASE_URL="pglite:./.pglite"
 ```
 
-You can preview the production build with `npm run preview`.
+The local database is development-only; production builds always use Neon.
+
+## Environment variables
+
+| Name                 | What                                                                         |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `DATABASE_URL`       | Neon connection string (`postgres://…`), or `pglite:./.pglite` locally       |
+| `ORIGIN`             | The site's address, e.g. `https://salem-entrepreneurs-forum.vercel.app`      |
+| `BETTER_AUTH_SECRET` | 32+ random characters (`npx auth secret`). Also the one-time admin setup key |
+
+## Admin
+
+`/admin` — events, contact-form enquiries, and admin accounts.
+
+- **First admin:** open `/admin/setup`, enter `BETTER_AUTH_SECRET` as the setup key, and choose your login.
+  The page only works while no admin exists.
+- **More admins:** Admins & account → Add an admin.
+- Events marked _Published_ appear on `/events`; the next three upcoming ones also appear on the home page.
+  Event times are entered and shown in India time.
+
+## Schema changes
+
+Edit `src/lib/server/db/schema.ts`, then run `npm run db:push` against each database (local and Neon).
+
+## Scroll story
+
+The home page video is built from the Higgsfield clips:
+
+```sh
+scripts/frames.sh story/clips 200   # also runs scripts/keyframes.py for the sharp chapter stills
+```

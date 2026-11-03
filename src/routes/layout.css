@@ -133,3 +133,25 @@ html.lenis body {
 		animation: none;
 	}
 }
+
+/* Admin forms and buttons */
+@layer components {
+	.field-label {
+		@apply block text-xs font-semibold tracking-wide text-ink-700;
+	}
+	.field-input {
+		@apply mt-1.5 block w-full rounded-md border-ink-900/15 bg-white px-3 py-2.5 text-sm text-ink-900 shadow-xs focus:border-brass-500 focus:ring-brass-400;
+	}
+	.field-error {
+		@apply mt-1.5 text-xs text-laterite-500;
+	}
+	.btn-primary {
+		@apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 bg-ink-900 text-ivory-50 hover:bg-ink-700;
+	}
+	.btn-quiet {
+		@apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 border border-ink-900/15 bg-white text-ink-900 hover:border-brass-500 hover:text-brass-600;
+	}
+	.btn-danger {
+		@apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 bg-laterite-500 text-ivory-50 hover:bg-laterite-400;
+	}
+}
