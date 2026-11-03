@@ -9,6 +9,7 @@
 #   static/story/mobile/f_0001.webp  …  720px wide, centre-cropped 3:4
 #   static/story/poster.webp
 #   static/story/manifest.json
+# then scripts/keyframes.py adds the sharp keyframe stills each chapter rests on.
 set -euo pipefail
 
 clips=${1:?usage: frames.sh <clips-dir> [frames]}
@@ -43,9 +44,9 @@ fps=$(awk -v f="$frames" -v d="$duration" 'BEGIN { printf "%.4f", f / d }')
 rm -rf "$out/desktop" "$out/mobile"
 mkdir -p "$out/desktop" "$out/mobile"
 ffmpeg -loglevel error -i "$work/story.mp4" -vf "fps=$fps,scale=1280:-2:flags=lanczos" \
-	-c:v libwebp -quality 62 -compression_level 6 "$out/desktop/f_%04d.webp"
+	-c:v libwebp -quality 78 -compression_level 6 "$out/desktop/f_%04d.webp"
 ffmpeg -loglevel error -i "$work/story.mp4" -vf "fps=$fps,crop=ih*3/4:ih,scale=720:-2:flags=lanczos" \
-	-c:v libwebp -quality 58 -compression_level 6 "$out/mobile/f_%04d.webp"
+	-c:v libwebp -quality 72 -compression_level 6 "$out/mobile/f_%04d.webp"
 cp "$out/desktop/f_0001.webp" "$out/poster.webp"
 
 count_d=$(ls "$out/desktop" | wc -l)
@@ -63,4 +64,5 @@ cat > "$out/manifest.json" <<JSON
 	}
 }
 JSON
+[[ -d story/keyframes ]] && python -I scripts/keyframes.py story/keyframes
 echo "desktop: $count_d frames ($(du -sh "$out/desktop" | cut -f1)), mobile: $count_m frames ($(du -sh "$out/mobile" | cut -f1))"

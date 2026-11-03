@@ -28,7 +28,7 @@
 				Eight reasons leaders choose SEF.
 			</h2>
 			<p class="mt-6 max-w-sm text-stone-muted">
-				Networking, education, leads and fellowship — in one room, every month.
+				Networking, education, leads and partnerships — in one room, every month.
 			</p>
 			<div class="display mt-12 hidden text-[9rem] leading-none text-brass-400 tabular-nums lg:block">
 				{String(active + 1).padStart(2, '0')}<span class="text-3xl text-ink-900/30">/08</span>

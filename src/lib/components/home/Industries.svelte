@@ -13,7 +13,8 @@
 		'from-[#2b2416] via-[#6b5527] to-[#c9973f]',
 		'from-[#0a1a24] via-[#123848] to-[#2d6b74]',
 		'from-[#1a1424] via-[#3a2a48] to-[#7a5a8a]',
-		'from-[#1c1a17] via-[#3d3a33] to-[#8e6424]'
+		'from-[#1c1a17] via-[#3d3a33] to-[#8e6424]',
+		'from-[#1d1a12] via-[#4a3d1e] to-[#b8a27a]'
 	];
 
 	onMount(() => {
@@ -62,7 +63,7 @@
 	>
 		<div class="shrink-0 lg:w-[34vw] lg:pr-10">
 			<p class="eyebrow text-brass-300">Who sits at the table</p>
-			<h2 class="display mt-6 text-[clamp(2.75rem,5vw,5rem)]">Six industries.<br />One forum.</h2>
+			<h2 class="display mt-6 text-[clamp(2.75rem,5vw,5rem)]">Multiple industries.<br />One forum.</h2>
 			<p class="mt-6 max-w-sm text-ivory-200/70">
 				Owners, managing directors, founders and factory operators from across Salem and the
 				Kongu belt.

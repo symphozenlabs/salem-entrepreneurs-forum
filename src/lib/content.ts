@@ -36,9 +36,10 @@ export const industries = [
 	{ name: 'Textiles', note: 'Looms, dyeing & handloom exporters' },
 	{ name: 'Steel', note: 'Rolling mills, fabrication & foundries' },
 	{ name: 'Sago', note: 'Tapioca processors of the Sagoserve belt' },
-	{ name: 'Software', note: 'SaaS, services & digital studios' },
+	{ name: 'Technology', note: 'IT services, SaaS & digital studios' },
 	{ name: 'Healthcare', note: 'Hospitals, diagnostics & pharma' },
-	{ name: 'Infrastructure', note: 'Builders, realty & logistics' }
+	{ name: 'Infrastructure', note: 'Builders, realty & logistics' },
+	{ name: 'Jewellery', note: 'Gold & silver smiths, makers & showrooms' }
 ];
 
 export const reasons = [
@@ -47,7 +48,7 @@ export const reasons = [
 	{ title: 'Collaboration', body: 'Find partners, vendors, co-founders and joint-venture allies without cold outreach.' },
 	{ title: 'Knowledge', body: 'Learn from industrialists, chartered accountants, technology leaders and exporters.' },
 	{ title: 'Events', body: 'Monthly dinners, workshops and masterclasses — from Fairlands to the Yercaud hills.' },
-	{ title: 'Fellowship', body: 'The friendships that outlast the deal. Business is better among people you trust.' },
+	{ title: 'Trust', body: 'Members vouch for one another, so every introduction starts on credibility and every deal on accountability.' },
 	{ title: 'Visibility', body: 'A verified profile, digital member card and directory listing across the region.' },
 	{ title: 'Growth', body: 'Raise your valuation, open export doors and scale with the forum behind you.' }
 ];
@@ -96,7 +97,7 @@ export const chapters = [
 	},
 	{
 		at: 0.22,
-		eyebrow: 'Six industries',
+		eyebrow: 'Multiple industries',
 		title: 'Looms. Steel. Sago. Code.',
 		body: '150+ founders who build what Tamil Nadu runs on.'
 	},

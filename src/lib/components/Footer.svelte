@@ -53,6 +53,15 @@
 		<div class="mt-20 flex flex-col justify-between gap-4 border-t border-ivory-100/10 py-8 text-xs text-ivory-200/40 sm:flex-row">
 			<p>© {new Date().getFullYear()} {brand.name}. All rights reserved.</p>
 			<p>Official chapter · Salem, Tamil Nadu</p>
+			<p>
+				Powered by
+				<a
+					href="https://www.symphozen.com/"
+					target="_blank"
+					rel="noopener"
+					class="text-ivory-200/70 transition-colors hover:text-brass-200">SymphoZen Labs</a
+				>
+			</p>
 		</div>
 	</div>
 
