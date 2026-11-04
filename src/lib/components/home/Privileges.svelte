@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { privileges } from '#lib/content.ts';
+	import { privileges, type Membership } from '#lib/content.ts';
 	import { rise, reveal } from '#lib/motion.ts';
 	import MemberCard from '#lib/components/MemberCard.svelte';
+
+	let { membership }: { membership: Membership } = $props();
 </script>
 
 <section data-nav="light" class="overflow-hidden bg-ivory-200 py-32 sm:py-44">
@@ -15,7 +17,7 @@
 				Membership you can carry.
 			</h2>
 			<ul use:rise={{ children: true }} class="mt-14 space-y-10">
-				{#each privileges as p (p.n)}
+				{#each privileges(membership) as p (p.n)}
 					<li class="grid grid-cols-[3.5rem_1fr] gap-4">
 						<span class="display text-3xl text-brass-500">{p.n}</span>
 						<div>

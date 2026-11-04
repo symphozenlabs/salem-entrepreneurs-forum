@@ -1,16 +1,23 @@
 import type { Handle } from '@sveltejs/kit/hooks';
-import { building } from '$app/env';
+import { building, dev } from '$app/env';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 
 type Auth = (typeof import('#lib/server/auth.ts'))['auth'];
 
 // Admin pages reachable without being signed in as an admin.
-const OPEN_ADMIN_PATHS = new Set(['/admin/login', '/admin/setup']);
+const OPEN_ADMIN_PATHS = new Set(['/admin/login', '/admin/setup', '/admin/logout']);
+// The one member page open to someone still holding a temporary password.
+const PASSWORD_PAGE = '/member/password';
 
-const isAdminPath = (path: string) => path === '/admin' || path.startsWith('/admin/');
+const under = (path: string, root: string) => path === root || path.startsWith(root + '/');
+
+const redirect = (location: string) => new Response(null, { status: 303, headers: { location } });
 
 const handleBetterAuth: Handle = async ({ event, resolve }) => {
-	const admin = isAdminPath(event.url.pathname);
+	const path = event.url.pathname;
+	const admin = under(path, '/admin');
+	const member = under(path, '/member');
+	const guarded = admin || member;
 
 	// Imported lazily: a missing DATABASE_URL or BETTER_AUTH_SECRET should break
 	// sign-in, not take the whole public site down with it.
@@ -19,7 +26,7 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 		({ auth } = await import('#lib/server/auth.ts'));
 	} catch (error) {
 		console.error('[auth] unavailable:', error);
-		if (admin) return unavailable();
+		if (guarded) return unavailable(error);
 		return resolve(event);
 	}
 
@@ -31,31 +38,36 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 		}
 	} catch (error) {
 		console.error('[auth] session lookup failed:', error);
-		if (admin) return unavailable();
+		if (guarded) return unavailable(error);
 	}
 
-	// Guarded here rather than in a layout load, so form actions and endpoints are covered too.
-	if (admin && !OPEN_ADMIN_PATHS.has(event.url.pathname)) {
-		const user = event.locals.user;
-		if (!user) {
-			const next = encodeURIComponent(event.url.pathname + event.url.search);
-			return new Response(null, {
-				status: 303,
-				headers: { location: `/admin/login?next=${next}` }
-			});
-		}
+	// Guarded here rather than in layout loads, so form actions and endpoints are covered too.
+	const user = event.locals.user;
+	const next = encodeURIComponent(path + event.url.search);
+	if (admin && !OPEN_ADMIN_PATHS.has(path)) {
+		if (!user) return redirect(`/admin/login?next=${next}`);
 		if (user.role !== 'admin') return new Response('Forbidden', { status: 403 });
+	}
+	if (member) {
+		if (!user) return redirect(`/login?next=${next}`);
+		if (user.role !== 'member') return redirect(user.role === 'admin' ? '/admin' : '/login');
+		if (user.mustChangePassword && path !== PASSWORD_PAGE) return redirect(PASSWORD_PAGE);
 	}
 
 	const response = await svelteKitHandler({ event, resolve, auth, building });
-	if (admin) response.headers.set('x-robots-tag', 'noindex, nofollow');
+	if (guarded) response.headers.set('x-robots-tag', 'noindex, nofollow');
 	return response;
 };
 
-const unavailable = () =>
-	new Response('The admin is unavailable: the database or sign-in is not configured.', {
+/** 503 for the admin and member areas; in development it also says why. */
+function unavailable(error: unknown) {
+	let body = 'This area is unavailable: the database or sign-in is not configured.';
+	if (dev)
+		body += '\n\n' + (error instanceof Error ? (error.stack ?? error.message) : String(error));
+	return new Response(body, {
 		status: 503,
 		headers: { 'content-type': 'text/plain; charset=utf-8' }
 	});
+}
 
 export const handle: Handle = handleBetterAuth;

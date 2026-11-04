@@ -4,7 +4,7 @@ import { APIError } from 'better-auth/api';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { user } from '#lib/server/db/schema.ts';
-import { auth, createAccount, MIN_PASSWORD } from '#lib/server/auth.ts';
+import { auth, createAccount, MAX_PASSWORD, MIN_PASSWORD } from '#lib/server/auth.ts';
 import { adminCount, isEmail } from '#lib/server/admin.ts';
 
 export const load: PageServerLoad = async () => ({
@@ -36,12 +36,14 @@ export const actions: Actions = {
 		const [existing] = await db.select({ role: user.role }).from(user).where(eq(user.email, email));
 		if (existing?.role === 'admin')
 			return fail(400, { add: { ...values, error: 'That person is already an admin.' } });
-		if (existing) {
-			// An existing member account: promote it rather than creating a second login.
-			await db.update(user).set({ role: 'admin' }).where(eq(user.email, email));
-		} else {
-			await createAccount({ name, email, password, role: 'admin' });
-		}
+		if (existing)
+			return fail(400, {
+				add: {
+					...values,
+					error: 'That email belongs to a member. Use a different email for their admin login.'
+				}
+			});
+		await createAccount({ name, email, password, role: 'admin' });
 		return { add: { ok: true, email } };
 	},
 
@@ -68,6 +70,8 @@ export const actions: Actions = {
 			return fail(400, {
 				password: { error: `Use a password of at least ${MIN_PASSWORD} characters.` }
 			});
+		if (newPassword.length > MAX_PASSWORD)
+			return fail(400, { password: { error: `Keep it under ${MAX_PASSWORD} characters.` } });
 		if (newPassword !== String(data.get('confirm') ?? ''))
 			return fail(400, { password: { error: 'The two new passwords don’t match.' } });
 		try {

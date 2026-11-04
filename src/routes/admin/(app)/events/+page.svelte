@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import { coverUrl, eventShortDate, eventTime, isPast } from '#lib/events.ts';
+	import CoverImage from '#lib/components/CoverImage.svelte';
 
 	let { data, form }: PageProps = $props();
 	let confirming = $state<number | null>(null);
@@ -40,7 +41,7 @@
 				<div
 					class="size-14 shrink-0 overflow-hidden rounded bg-gradient-to-br from-ink-800 to-brass-600"
 				>
-					{#if cover}<img src={cover} alt="" class="h-full w-full object-cover" />{/if}
+					{#if cover}<CoverImage src={cover} class="h-full w-full" />{/if}
 				</div>
 				<div class="min-w-0 flex-1">
 					<p class="flex flex-wrap items-center gap-2">
@@ -50,6 +51,17 @@
 					<p class="mt-1 text-sm text-stone-muted">
 						{eventShortDate(e.startsAt)}, {eventTime(e.startsAt)} · {e.venue} · {e.category}
 					</p>
+					{#if e.registration === 'form'}
+						<a
+							href="/admin/events/{e.id}/registrations"
+							class="mt-1 inline-block text-sm font-semibold text-brass-600 hover:text-brass-500"
+						>
+							{e.registered} registered{e.seats ? ` of ${e.seats}` : ''}{#if e.toVerify}<span
+									class="ml-2 rounded-full bg-brass-400 px-2 py-0.5 text-[0.7rem] text-ink-950"
+									>{e.toVerify} to verify</span
+								>{/if}
+						</a>
+					{/if}
 				</div>
 				<div class="flex flex-wrap items-center gap-2">
 					<a href="/admin/events/{e.id}" class="btn-quiet !px-3 !py-1.5">Edit</a>

@@ -1,6 +1,13 @@
 <script lang="ts">
-	import { membership } from '#lib/content.ts';
+	import { rupees, type Membership } from '#lib/content.ts';
+	import type { PaymentInfo } from '#lib/membership.ts';
 	import { magnetic, reveal, rise } from '#lib/motion.ts';
+
+	let {
+		membership,
+		payment,
+		qrSvg
+	}: { membership: Membership; payment: PaymentInfo; qrSvg: string | null } = $props();
 
 	const steps = [
 		{ t: 'Apply', d: 'Tell us about you and your business. Five minutes.' },
@@ -10,7 +17,11 @@
 	];
 </script>
 
-<section id="membership" data-nav="dark" class="relative overflow-hidden bg-ink-950 py-32 text-ivory-100 sm:py-44">
+<section
+	id="membership"
+	data-nav="dark"
+	class="relative overflow-hidden bg-ink-950 py-32 text-ivory-100 sm:py-44"
+>
 	<div
 		class="pointer-events-none absolute -right-1/4 -bottom-1/3 size-[70vmax] rounded-full bg-[radial-gradient(circle,rgb(165_73_44/0.18),transparent_60%)]"
 	></div>
@@ -29,16 +40,35 @@
 				<div class="hairline absolute inset-x-10 top-0"></div>
 				<p class="eyebrow text-brass-300">Annual membership</p>
 				<p class="mt-8 flex items-baseline gap-3">
-					<span class="display text-brass-gradient text-7xl sm:text-8xl">{membership.price}</span>
+					<span class="display text-brass-gradient text-7xl sm:text-8xl"
+						>{rupees(membership.fee)}</span
+					>
 					<span class="text-ivory-200/60">/ {membership.period}</span>
 				</p>
 				<ul class="mt-10 space-y-4">
-					{#each membership.includes as item (item)}
+					{#each membership.includes as item, i (i)}
 						<li class="flex gap-4 text-ivory-200/85">
 							<span class="mt-2.5 h-px w-4 shrink-0 bg-brass-400"></span>{item}
 						</li>
 					{/each}
 				</ul>
+				{#if payment.upiId}
+					<div class="mt-10 flex items-center gap-5 rounded border border-ivory-100/10 p-4">
+						{#if qrSvg}
+							<div class="size-24 shrink-0 rounded bg-white p-1 [&_svg]:h-full [&_svg]:w-full">
+								<!-- Generated server-side from the admin's UPI ID. -->
+								{@html qrSvg}
+							</div>
+						{/if}
+						<div class="min-w-0">
+							<p class="eyebrow text-brass-300">Pay by UPI</p>
+							<p class="mt-1.5 truncate font-mono text-sm">{payment.upiId}</p>
+							<p class="mt-1 text-xs text-ivory-200/55">
+								Scan to pay, then apply with the transaction ID.
+							</p>
+						</div>
+					</div>
+				{/if}
 				<a
 					use:magnetic={0.2}
 					href="/join"

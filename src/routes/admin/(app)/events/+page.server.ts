@@ -4,8 +4,18 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { event, eventCover } from '#lib/server/db/schema.ts';
 import { allEvents, uniqueSlug } from '#lib/server/events.ts';
+import { registrationCounts } from '#lib/server/registrations.ts';
 
-export const load: PageServerLoad = async () => ({ events: await allEvents() });
+export const load: PageServerLoad = async () => {
+	const [events, counts] = await Promise.all([allEvents(), registrationCounts()]);
+	return {
+		events: events.map((e) => ({
+			...e,
+			registered: counts.get(e.id)?.confirmed ?? 0,
+			toVerify: counts.get(e.id)?.pending ?? 0
+		}))
+	};
+};
 
 const idOf = async (request: Request) => {
 	const id = Number((await request.formData()).get('id'));

@@ -34,8 +34,25 @@ The local database is development-only; production builds always use Neon.
 - **First admin:** open `/admin/setup`, enter `BETTER_AUTH_SECRET` as the setup key, and choose your login.
   The page only works while no admin exists.
 - **More admins:** Admins & account → Add an admin.
+- Each event registers people by WhatsApp, an outside link, or **our own form**: the admin builds the
+  questions, sets the fee (and an optional member fee), and confirms paid registrations in the
+  event's Registrations page, which also downloads as a spreadsheet. Free registrations confirm at once.
 - Events marked _Published_ appear on `/events`; the next three upcoming ones also appear on the home page.
   Event times are entered and shown in India time.
+
+## Membership
+
+- **Applying:** `/join` shows the fee and the UPI QR and ID set in Admin → Membership & payment.
+  Applicants pay, then submit their details with the UPI transaction ID (UTR).
+- **Approving:** Admin → Applications. Approving creates the member's login with a temporary
+  password and emails it. Without email set up, the admin is shown the login to share by hand.
+- **Members (`/member`):** choose a password on first sign-in, then:
+  - Profile and directory.
+  - **Connects:** leads passed to another member.
+  - **Transactions:** business done between members. The other member confirms it, and it
+    confirms itself after 7 days.
+  - **Membership:** status and UPI renewals, verified in Admin → Payments.
+- **Email:** set `RESEND_API_KEY` and `EMAIL_FROM` (a domain verified at resend.com). Both are optional.
 
 ## Schema changes
 

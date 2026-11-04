@@ -6,6 +6,17 @@ export const variables = defineEnvVars({
 		description: 'The app origin (base URL), e.g. `http://localhost:5173`.'
 	},
 	BETTER_AUTH_SECRET: {
-		description: 'Secret used to sign tokens. For production use 32 characters generated with high entropy. See [Better Auth installation](https://www.better-auth.com/docs/installation).'
+		description:
+			'Secret used to sign tokens. For production use 32 characters generated with high entropy. See [Better Auth installation](https://www.better-auth.com/docs/installation).'
+	},
+	// Optional: without these, admins are shown new members' passwords to share by hand.
+	RESEND_API_KEY: {
+		description: 'Resend API key for sending member emails.',
+		schema: (value) => value ?? ''
+	},
+	EMAIL_FROM: {
+		description:
+			'Sender for member emails, e.g. `SEF Secretariat <secretariat@your-domain.com>` (a domain verified in Resend).',
+		schema: (value) => value ?? ''
 	}
 });

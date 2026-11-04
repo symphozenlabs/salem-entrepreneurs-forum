@@ -13,7 +13,9 @@ export const auth = betterAuth({
 	emailAndPassword: { enabled: true, disableSignUp: true },
 	user: {
 		additionalFields: {
-			role: { type: 'string', defaultValue: 'member', input: false }
+			role: { type: 'string', defaultValue: 'member', input: false },
+			// Set for accounts created with a temporary password; cleared once they choose their own.
+			mustChangePassword: { type: 'boolean', defaultValue: false, input: false }
 		}
 	},
 	plugins: [
@@ -30,6 +32,7 @@ export async function createAccount(input: {
 	email: string;
 	password: string;
 	role: 'admin' | 'member';
+	mustChangePassword?: boolean;
 }) {
 	const ctx = await auth.$context;
 	const user = await ctx.internalAdapter.createUser(
@@ -37,7 +40,8 @@ export async function createAccount(input: {
 			name: input.name,
 			email: input.email.toLowerCase(),
 			emailVerified: true,
-			role: input.role
+			role: input.role,
+			mustChangePassword: input.mustChangePassword ?? false
 		},
 		{ method: 'admin' }
 	);
@@ -51,3 +55,5 @@ export async function createAccount(input: {
 }
 
 export const MIN_PASSWORD = 8;
+/** Better Auth's default upper limit. */
+export const MAX_PASSWORD = 128;

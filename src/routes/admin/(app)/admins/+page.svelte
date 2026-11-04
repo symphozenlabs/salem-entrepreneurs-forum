@@ -11,7 +11,7 @@
 <h1 class="display mt-2 text-4xl">Who can manage the site</h1>
 
 <div class="mt-8 grid gap-8 xl:grid-cols-[1fr_24rem]">
-	<section class="rounded-lg border border-ink-900/10 bg-white">
+	<section class="h-fit rounded-lg border border-ink-900/10 bg-white">
 		<h2 class="border-b border-ink-900/10 px-5 py-4 font-semibold">Admins</h2>
 		{#if form?.remove && 'error' in form.remove}<p class="field-error px-5 pt-4" role="alert">
 				{form.remove.error}

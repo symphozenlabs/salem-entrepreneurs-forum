@@ -43,36 +43,51 @@ export const industries = [
 ];
 
 export const reasons = [
-	{ title: 'Network', body: 'Sit across the table from entrepreneurs and manufacturers from every major Salem industry.' },
-	{ title: 'Business', body: 'Warm leads, vetted referrals and supplier contracts — exchanged between people who know each other.' },
-	{ title: 'Collaboration', body: 'Find partners, vendors, co-founders and joint-venture allies without cold outreach.' },
-	{ title: 'Knowledge', body: 'Learn from industrialists, chartered accountants, technology leaders and exporters.' },
-	{ title: 'Events', body: 'Monthly dinners, workshops and masterclasses — from Fairlands to the Yercaud hills.' },
-	{ title: 'Trust', body: 'Members vouch for one another, so every introduction starts on credibility and every deal on accountability.' },
-	{ title: 'Visibility', body: 'A verified profile, digital member card and directory listing across the region.' },
-	{ title: 'Growth', body: 'Raise your valuation, open export doors and scale with the forum behind you.' }
-];
-
-export const privileges = [
 	{
-		n: '01',
-		title: 'Digital Member Card',
-		body: 'A gold-foiled digital pass with a QR code that links to your verified profile and portfolio.'
+		title: 'Network',
+		body: 'Sit across the table from entrepreneurs and manufacturers from every major Salem industry.'
 	},
 	{
-		n: '02',
-		title: 'Referral Rewards',
-		body: 'Earn 10% — ₹500 — for every entrepreneur you bring into the forum.'
+		title: 'Business',
+		body: 'Warm leads, vetted referrals and supplier contracts — exchanged between people who know each other.'
 	},
 	{
-		n: '03',
-		title: 'Conclave Seating',
-		body: 'Complimentary or subsidised seats at conclaves, masterclasses and roundtables.'
+		title: 'Collaboration',
+		body: 'Find partners, vendors, co-founders and joint-venture allies without cold outreach.'
+	},
+	{
+		title: 'Knowledge',
+		body: 'Learn from industrialists, chartered accountants, technology leaders and exporters.'
+	},
+	{
+		title: 'Events',
+		body: 'Monthly dinners, workshops and masterclasses — from Fairlands to the Yercaud hills.'
+	},
+	{
+		title: 'Trust',
+		body: 'Members vouch for one another, so every introduction starts on credibility and every deal on accountability.'
+	},
+	{
+		title: 'Visibility',
+		body: 'A verified profile, digital member card and directory listing across the region.'
+	},
+	{
+		title: 'Growth',
+		body: 'Raise your valuation, open export doors and scale with the forum behind you.'
 	}
 ];
 
-export const membership = {
-	price: '₹5,000',
+/** Membership card defaults; the fee, period, list and note are editable in the admin. */
+export type Membership = {
+	/** Annual fee in rupees. */
+	fee: number;
+	period: string;
+	includes: string[];
+	note: string;
+};
+
+export const defaultMembership: Membership = {
+	fee: 5000,
 	period: '12 months',
 	includes: [
 		'Verified member credentials',
@@ -83,6 +98,30 @@ export const membership = {
 	],
 	note: 'Applications are reviewed by the secretariat within 24 business hours.'
 };
+
+/** Members earn this share of the fee for each entrepreneur they refer. */
+export const REFERRAL_PERCENT = 10;
+
+/** ₹5,000 · ₹1,00,000 (Indian digit grouping). */
+export const rupees = (n: number) => '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
+export const privileges = (m: Membership) => [
+	{
+		n: '01',
+		title: 'Digital Member Card',
+		body: 'A gold-foiled digital pass with a QR code that links to your verified profile and portfolio.'
+	},
+	{
+		n: '02',
+		title: 'Referral Rewards',
+		body: `Earn ${REFERRAL_PERCENT}% — ${rupees(Math.round((m.fee * REFERRAL_PERCENT) / 100))} — for every entrepreneur you bring into the forum.`
+	},
+	{
+		n: '03',
+		title: 'Conclave Seating',
+		body: 'Complimentary or subsidised seats at conclaves, masterclasses and roundtables.'
+	}
+];
 
 /**
  * Scroll-story chapters. `at` is the scroll progress (0–1) at which the chapter
@@ -104,25 +143,25 @@ export const chapters = [
 	{
 		at: 0.4,
 		eyebrow: 'The gathering',
-		title: 'Built on handshakes.',
-		body: 'Once a month, the people behind those businesses sit at the same table.'
+		title: 'We talk more than business.',
+		body: 'Mental health, business challenges — and a few brain games.'
 	},
 	{
 		at: 0.58,
 		eyebrow: 'The exchange',
 		title: 'Knowledge, shared freely.',
-		body: 'Exporters, auditors and technologists — answering the questions you can’t google.'
+		body: 'Interact with like-minded people who never judge.'
 	},
 	{
 		at: 0.76,
 		eyebrow: 'The network',
 		title: '₹12 Cr of trust, in motion.',
-		body: 'Every referral is a promise between members. The pipeline keeps growing.'
+		body: 'Exclusive support for our online and offline members.'
 	},
 	{
 		at: 0.93,
 		eyebrow: 'Your seat',
 		title: 'Meet. Learn. Collaborate. Grow.',
-		body: 'The forum is invite-reviewed and limited. Your seat is waiting.'
+		body: 'For like-minded people taking their business to the next level.'
 	}
 ];

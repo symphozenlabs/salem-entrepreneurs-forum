@@ -3,8 +3,12 @@
 	import { page } from '$app/state';
 	import {
 		CalendarDays,
+		IdCard,
+		ReceiptIndianRupee,
+		UserPlus,
 		ExternalLink,
 		Inbox,
+		IndianRupee,
 		LayoutDashboard,
 		LogOut,
 		Menu,
@@ -15,15 +19,29 @@
 	let { data, children }: LayoutProps = $props();
 	let open = $state(false);
 
-	const links = [
+	const links = $derived([
 		{ href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+		{
+			href: '/admin/applications',
+			label: 'Applications',
+			icon: UserPlus,
+			badge: data.pendingApplications
+		},
+		{ href: '/admin/members', label: 'Members', icon: IdCard },
+		{
+			href: '/admin/payments',
+			label: 'Payments',
+			icon: ReceiptIndianRupee,
+			badge: data.pendingPayments
+		},
 		{ href: '/admin/events', label: 'Events', icon: CalendarDays },
-		{ href: '/admin/enquiries', label: 'Enquiries', icon: Inbox },
+		{ href: '/admin/enquiries', label: 'Enquiries', icon: Inbox, badge: data.openEnquiries },
+		{ href: '/admin/membership', label: 'Membership & payment', icon: IndianRupee },
 		{ href: '/admin/admins', label: 'Admins & account', icon: ShieldCheck }
-	];
+	]);
 
 	const active = (href: string) =>
-		href === '/admin' ? page.url.pathname === '/admin' : page.url.pathname.startsWith(href);
+		page.url.pathname === href || (href !== '/admin' && page.url.pathname.startsWith(href + '/'));
 </script>
 
 <div class="lg:grid lg:min-h-svh lg:grid-cols-[16rem_1fr]">
@@ -64,10 +82,10 @@
 				>
 					<l.icon class="size-4" />
 					<span class="flex-1">{l.label}</span>
-					{#if l.href === '/admin/enquiries' && data.openEnquiries}
+					{#if l.badge}
 						<span
 							class="rounded-full bg-brass-400 px-2 py-0.5 text-[0.7rem] font-semibold text-ink-950"
-							>{data.openEnquiries}</span
+							>{l.badge}</span
 						>
 					{/if}
 				</a>

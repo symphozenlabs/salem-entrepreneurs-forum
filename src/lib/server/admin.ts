@@ -13,3 +13,14 @@ export function safeNext(next: string | null) {
 }
 
 export const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+/** null for blank, undefined for anything but an http(s) link, else the normalised URL. */
+export function safeUrl(value: string) {
+	if (!value) return null;
+	try {
+		const u = new URL(/^[a-z]+:/i.test(value) ? value : `https://${value}`);
+		return u.protocol === 'https:' || u.protocol === 'http:' ? u.toString() : undefined;
+	} catch {
+		return undefined;
+	}
+}

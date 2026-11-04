@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { eventCover } from '#lib/server/db/schema.ts';
+import { imageResponse } from '#lib/server/uploads.ts';
 
 /** Event cover images. URLs carry ?v=<updated-at>, so responses can be cached forever. */
 export const GET: RequestHandler = async ({ params }) => {
@@ -13,12 +14,5 @@ export const GET: RequestHandler = async ({ params }) => {
 		.from(eventCover)
 		.where(eq(eventCover.eventId, id));
 	if (!cover) error(404);
-
-	return new Response(Buffer.from(cover.data, 'base64'), {
-		headers: {
-			'content-type': cover.mime,
-			'cache-control': 'public, max-age=31536000, immutable',
-			'x-content-type-options': 'nosniff'
-		}
-	});
+	return imageResponse(cover, 'public, max-age=31536000, immutable');
 };

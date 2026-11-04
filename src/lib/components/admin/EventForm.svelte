@@ -1,6 +1,10 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { categories } from '#lib/events.ts';
+	import { categories, registrationModes } from '#lib/events.ts';
+	import FormBuilder from '#lib/components/admin/FormBuilder.svelte';
+	import DateTimePicker from '#lib/components/admin/DateTimePicker.svelte';
+	import { shrinkImageInput } from '#lib/image.ts';
 
 	type Props = {
 		values: Record<string, string>;
@@ -12,40 +16,34 @@
 	let { values, errors = {}, cover = null, submitLabel }: Props = $props();
 
 	let busy = $state(false);
+	// A category outside the list was typed under "Other".
+	const listed = categories as readonly string[];
+	let categoryChoice = $state(
+		untrack(() => {
+			const c = values.category || 'Conclave';
+			return listed.includes(c) ? c : 'Other';
+		})
+	);
+	let categoryOther = $state(
+		untrack(
+			() =>
+				values.categoryOther ??
+				(listed.includes(values.category ?? '') ? '' : (values.category ?? ''))
+		)
+	);
+	// The start time steers the end and closing pickers' defaults.
+	let startsAt = $state(untrack(() => values.startsAt ?? ''));
+	// Which registration settings to show; seeded from the event, then the admin's choice.
+	let registration = $state(untrack(() => values.registration || 'whatsapp'));
 	let preview = $state<string | null>(null);
 	let removeCover = $state(false);
 	let coverNote = $state('');
 
-	const MAX_EDGE = 1800;
-
-	/** Shrinks the chosen photo in the browser so uploads stay small (phone photos are 5–10 MB). */
 	async function prepareCover(e: Event & { currentTarget: HTMLInputElement }) {
-		const input = e.currentTarget;
-		const file = input.files?.[0];
-		coverNote = '';
-		if (!file) return (preview = null);
 		removeCover = false;
-		try {
-			const bitmap = await createImageBitmap(file);
-			const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-			const canvas = document.createElement('canvas');
-			canvas.width = Math.round(bitmap.width * scale);
-			canvas.height = Math.round(bitmap.height * scale);
-			canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-			const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/webp', 0.82));
-			if (blob && blob.size < file.size) {
-				const dt = new DataTransfer();
-				dt.items.add(
-					new File([blob], file.name.replace(/\.\w+$/, '') + '.webp', { type: 'image/webp' })
-				);
-				input.files = dt.files;
-			}
-			const final = input.files![0];
-			coverNote = `${canvas.width}×${canvas.height}, ${Math.round(final.size / 1024)} KB`;
-			preview = URL.createObjectURL(final);
-		} catch {
-			preview = URL.createObjectURL(file);
-		}
+		const shrunk = await shrinkImageInput(e.currentTarget, 1800);
+		preview = shrunk?.preview ?? null;
+		coverNote = shrunk?.note ?? '';
 	}
 
 	const shown = $derived(preview ?? (removeCover ? null : cover));
@@ -80,13 +78,29 @@
 		<div class="grid gap-6 sm:grid-cols-2">
 			<label class="block">
 				<span class="field-label">Category *</span>
-				<select name="category" required class="field-input">
+				<select name="category" required bind:value={categoryChoice} class="field-input">
 					{#each categories as c (c)}
-						<option value={c} selected={(values.category ?? 'Conclave') === c}>{c}</option>
+						<option value={c}>{c}</option>
 					{/each}
 				</select>
-				{#if errors.category}<p class="field-error">{errors.category}</p>{/if}
+				{#if errors.category && categoryChoice !== 'Other'}<p class="field-error">
+						{errors.category}
+					</p>{/if}
 			</label>
+			{#if categoryChoice === 'Other'}
+				<label class="block">
+					<span class="field-label">What kind of event? *</span>
+					<input
+						name="categoryOther"
+						required
+						maxlength="40"
+						bind:value={categoryOther}
+						placeholder="e.g. Member meetup, Diwali celebration"
+						class="field-input"
+					/>
+					{#if errors.category}<p class="field-error">{errors.category}</p>{/if}
+				</label>
+			{/if}
 			<label class="block">
 				<span class="field-label">Entry / price</span>
 				<input
@@ -111,29 +125,26 @@
 		</label>
 
 		<div class="grid gap-6 sm:grid-cols-2">
-			<label class="block">
+			<div>
 				<span class="field-label"
 					>Starts * <span class="font-normal text-stone-muted">(India time)</span></span
 				>
-				<input
-					name="startsAt"
-					type="datetime-local"
-					required
-					value={values.startsAt ?? ''}
-					class="field-input"
-				/>
+				<DateTimePicker name="startsAt" label="Starts" bind:value={startsAt} />
 				{#if errors.startsAt}<p class="field-error">{errors.startsAt}</p>{/if}
-			</label>
-			<label class="block">
+			</div>
+			<div>
 				<span class="field-label">Ends</span>
-				<input
+				<DateTimePicker
 					name="endsAt"
-					type="datetime-local"
+					label="Ends"
 					value={values.endsAt ?? ''}
-					class="field-input"
+					placeholder="Optional"
+					optional
+					anchor={startsAt}
+					anchorOffsetHours={3}
 				/>
 				{#if errors.endsAt}<p class="field-error">{errors.endsAt}</p>{/if}
-			</label>
+			</div>
 		</div>
 
 		<div class="grid gap-6 sm:grid-cols-2">
@@ -180,45 +191,136 @@
 			>
 		</label>
 
-		<div class="grid gap-6 sm:grid-cols-2">
-			<label class="block">
-				<span class="field-label">Seats</span>
-				<input
-					name="seats"
-					type="number"
-					min="1"
-					step="1"
-					value={values.seats ?? ''}
-					class="field-input"
-					placeholder="60"
-				/>
-				{#if errors.seats}<p class="field-error">{errors.seats}</p>{/if}
-			</label>
-			<label class="block">
-				<span class="field-label">Registration link</span>
-				<input
-					name="registrationUrl"
-					type="url"
-					value={values.registrationUrl ?? ''}
-					class="field-input"
-					placeholder="https://forms.gle/…"
-				/>
-				<span class="mt-1.5 block text-xs text-stone-muted"
-					>Empty: “Reserve a seat” opens WhatsApp with the secretariat.</span
-				>
-				{#if errors.registrationUrl}<p class="field-error">{errors.registrationUrl}</p>{/if}
-			</label>
-		</div>
+		<fieldset class="space-y-5 border-t border-ink-900/10 pt-6">
+			<legend class="text-sm font-semibold">Registration</legend>
+			<div class="grid gap-3 sm:grid-cols-3">
+				{#each Object.entries(registrationModes) as [key, label] (key)}
+					<label
+						class="flex cursor-pointer gap-2.5 rounded-md border p-3 text-sm transition-colors {registration ===
+						key
+							? 'border-brass-500 bg-brass-200/30'
+							: 'border-ink-900/15 hover:border-ink-900/30'}"
+					>
+						<input
+							type="radio"
+							name="registration"
+							value={key}
+							bind:group={registration}
+							class="mt-0.5 text-ink-900"
+						/>
+						{label}
+					</label>
+				{/each}
+			</div>
+			{#if errors.registration}<p class="field-error">{errors.registration}</p>{/if}
+
+			<div class="grid gap-6 sm:grid-cols-2">
+				<label class="block">
+					<span class="field-label">Seats</span>
+					<input
+						name="seats"
+						type="number"
+						min="1"
+						step="1"
+						value={values.seats ?? ''}
+						class="field-input"
+						placeholder="60"
+					/>
+					<span class="mt-1.5 block text-xs text-stone-muted">
+						{registration === 'form'
+							? 'Registration closes when this many have registered.'
+							: 'Shown on the event page.'}
+					</span>
+					{#if errors.seats}<p class="field-error">{errors.seats}</p>{/if}
+				</label>
+				{#if registration === 'link'}
+					<label class="block">
+						<span class="field-label">Registration link *</span>
+						<input
+							name="registrationUrl"
+							type="url"
+							value={values.registrationUrl ?? ''}
+							class="field-input"
+							placeholder="https://forms.gle/…"
+						/>
+						{#if errors.registrationUrl}<p class="field-error">{errors.registrationUrl}</p>{/if}
+					</label>
+				{:else if registration === 'form'}
+					<div>
+						<span class="field-label">Registration closes</span>
+						<DateTimePicker
+							name="registrationClosesAt"
+							label="Registration closes"
+							value={values.registrationClosesAt ?? ''}
+							placeholder="When the event starts"
+							optional
+							anchor={startsAt}
+						/>
+						<span class="mt-1.5 block text-xs text-stone-muted"
+							>Empty: open until the event starts.</span
+						>
+						{#if errors.registrationClosesAt}<p class="field-error">
+								{errors.registrationClosesAt}
+							</p>{/if}
+					</div>
+					<label class="block">
+						<span class="field-label">Fee (₹)</span>
+						<input
+							name="fee"
+							inputmode="numeric"
+							value={values.fee ?? '0'}
+							class="field-input"
+							placeholder="0"
+						/>
+						<span class="mt-1.5 block text-xs text-stone-muted"
+							>0 = free; free registrations are confirmed straight away.</span
+						>
+						{#if errors.fee}<p class="field-error">{errors.fee}</p>{/if}
+					</label>
+					<label class="block">
+						<span class="field-label">Member fee (₹)</span>
+						<input
+							name="memberFee"
+							inputmode="numeric"
+							value={values.memberFee ?? ''}
+							class="field-input"
+							placeholder="Same as fee"
+						/>
+						<span class="mt-1.5 block text-xs text-stone-muted"
+							>Optional lower fee for signed-in members.</span
+						>
+						{#if errors.memberFee}<p class="field-error">{errors.memberFee}</p>{/if}
+					</label>
+				{:else}
+					<p class="self-end text-sm text-stone-muted">
+						“Reserve a seat” opens WhatsApp with the secretariat.
+					</p>
+				{/if}
+			</div>
+
+			{#if registration === 'form'}
+				<FormBuilder value={values.formFields ?? '[]'} error={errors.formFields} />
+			{/if}
+		</fieldset>
 	</div>
 
 	<div class="space-y-6">
 		<div class="rounded-lg border border-ink-900/10 bg-white p-5">
 			<span class="field-label">Cover image</span>
-			<div
-				class="mt-2 aspect-[4/3] overflow-hidden rounded bg-gradient-to-br from-ink-800 via-ink-700 to-brass-600"
-			>
-				{#if shown}<img src={shown} alt="Cover preview" class="h-full w-full object-cover" />{/if}
-			</div>
+			{#if shown}
+				<img
+					src={shown}
+					alt="Cover preview"
+					class="mx-auto mt-2 h-auto max-h-[28rem] w-auto max-w-full rounded"
+				/>
+				<p class="mt-1.5 text-xs text-stone-muted">
+					Shown in full on the site, at its own shape — nothing is cut off.
+				</p>
+			{:else}
+				<div
+					class="mt-2 aspect-[4/3] rounded bg-gradient-to-br from-ink-800 via-ink-700 to-brass-600"
+				></div>
+			{/if}
 			<input
 				name="cover"
 				type="file"

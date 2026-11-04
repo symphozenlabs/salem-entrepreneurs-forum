@@ -1,16 +1,22 @@
-import { count, desc, eq } from 'drizzle-orm';
+import { count, desc, eq, gt } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
-import { contactMessage, event } from '#lib/server/db/schema.ts';
-import { upcomingEvents } from '#lib/server/events.ts';
-import { adminCount } from '#lib/server/admin.ts';
+import { contactMessage, event, memberProfile } from '#lib/server/db/schema.ts';
+import { upcomingCount, upcomingEvents } from '#lib/server/events.ts';
+import { networkTotals } from '#lib/server/network.ts';
 
 export const load: PageServerLoad = async () => {
-	const [upcoming, [drafts], recent, admins] = await Promise.all([
+	const [upcoming, upcomingTotal, [drafts], recent, [members], network] = await Promise.all([
 		upcomingEvents(5),
+		upcomingCount(),
 		db.select({ n: count() }).from(event).where(eq(event.published, false)),
 		db.select().from(contactMessage).orderBy(desc(contactMessage.createdAt)).limit(5),
-		adminCount()
+		db
+			.select({ n: count() })
+			.from(memberProfile)
+			.where(gt(memberProfile.expiresAt, new Date()))
+			.catch(() => [{ n: 0 }]),
+		networkTotals().catch(() => ({ connects: 0, business: 0 }))
 	]);
-	return { upcoming, drafts: drafts.n, recent, admins };
+	return { upcoming, upcomingTotal, drafts: drafts.n, recent, activeMembers: members.n, network };
 };

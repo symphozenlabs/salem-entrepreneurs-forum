@@ -31,8 +31,20 @@ export type PublicEvent = {
 	price: string | null;
 	seats: number | null;
 	registrationUrl: string | null;
+	registration: string;
+	fee: number;
+	memberFee: number | null;
+	registrationClosesAt: Date | null;
 	coverVersion: number | null;
 };
+
+export const registrationModes = {
+	whatsapp: 'WhatsApp the secretariat',
+	link: 'An outside registration link',
+	form: 'Our registration form (with UPI payment)'
+} as const;
+
+export type RegistrationMode = keyof typeof registrationModes;
 
 const fmt = (opts: Intl.DateTimeFormatOptions) =>
 	new Intl.DateTimeFormat('en-IN', { timeZone: TIME_ZONE, ...opts });
@@ -63,8 +75,11 @@ export const coverUrl = (e: Pick<PublicEvent, 'id' | 'coverVersion'>) =>
 	e.coverVersion ? `/media/events/${e.id}?v=${e.coverVersion}` : null;
 
 /** Where the "Reserve" button goes: the event's own link, or WhatsApp with a ready-made message. */
-export function reserveUrl(e: Pick<PublicEvent, 'title' | 'startsAt' | 'registrationUrl'>) {
-	if (e.registrationUrl) return e.registrationUrl;
+export function reserveUrl(
+	e: Pick<PublicEvent, 'slug' | 'title' | 'startsAt' | 'registrationUrl' | 'registration'>
+) {
+	if (e.registration === 'form') return `/events/${e.slug}/register`;
+	if (e.registration === 'link' && e.registrationUrl) return e.registrationUrl;
 	const text = `Hello SEF secretariat, I'd like to reserve a seat for "${e.title}" on ${eventShortDate(e.startsAt)}.`;
 	return `${contact.whatsapp}?text=${encodeURIComponent(text)}`;
 }
@@ -113,3 +128,25 @@ export const paragraphs = (text: string | null) =>
 		.split(/\n\s*\n/)
 		.map((p) => p.trim())
 		.filter(Boolean);
+
+/** "Free", "₹1,500", or "₹1,500 · members ₹1,000" for events using our form. */
+export function feeLabel(e: Pick<PublicEvent, 'fee' | 'memberFee'>) {
+	const r = (n: number) => '₹' + n.toLocaleString('en-IN');
+	if (!e.fee) return 'Free';
+	if (e.memberFee !== null && e.memberFee < e.fee)
+		return `${r(e.fee)} · members ${e.memberFee ? r(e.memberFee) : 'free'}`;
+	return r(e.fee);
+}
+
+/** Whether our form is taking registrations right now, and if not, why. */
+export function registrationState(
+	e: Pick<PublicEvent, 'registration' | 'startsAt' | 'endsAt' | 'seats' | 'registrationClosesAt'>,
+	taken: number,
+	now = new Date()
+) {
+	if (e.registration !== 'form') return 'elsewhere' as const;
+	if (isPast(e, now) || e.startsAt < now) return 'past' as const;
+	if (e.registrationClosesAt && e.registrationClosesAt < now) return 'closed' as const;
+	if (e.seats && taken >= e.seats) return 'full' as const;
+	return 'open' as const;
+}

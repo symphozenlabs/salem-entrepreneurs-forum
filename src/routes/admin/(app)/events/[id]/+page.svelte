@@ -20,9 +20,14 @@
 <a href="/admin/events" class="text-sm text-stone-muted hover:text-ink-900">← All events</a>
 <div class="mt-3 flex flex-wrap items-end justify-between gap-4">
 	<h1 class="display text-4xl">{data.event.title}</h1>
-	<a href="/events/{data.event.slug}" target="_blank" class="btn-quiet">
-		{data.event.published ? 'View on website' : 'Preview draft'} ↗
-	</a>
+	<div class="flex flex-wrap gap-2">
+		{#if data.event.registration === 'form'}
+			<a href="/admin/events/{data.event.id}/registrations" class="btn-primary">Registrations</a>
+		{/if}
+		<a href="/events/{data.event.slug}" target="_blank" class="btn-quiet">
+			{data.event.published ? 'View on website' : 'Preview draft'} ↗
+		</a>
+	</div>
 </div>
 <p class="mt-2 text-sm text-stone-muted">Web address: /events/{data.event.slug}</p>
 

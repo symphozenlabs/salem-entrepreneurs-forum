@@ -2,7 +2,8 @@ import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { auth } from '#lib/server/auth.ts';
 
+// Open in hooks.server.ts, so it also works when the session has already expired.
 export const POST: RequestHandler = async ({ request }) => {
-	await auth.api.signOut({ headers: request.headers });
+	await auth.api.signOut({ headers: request.headers }).catch(() => {});
 	redirect(303, '/admin/login');
 };

@@ -8,7 +8,7 @@
 				{ label: 'Our story', href: '/#story' },
 				{ label: 'Why SEF', href: '/#why' },
 				{ label: 'Events', href: '/events' },
-				{ label: 'Member directory', href: '/members' }
+				{ label: 'Member directory', href: '/member/directory' }
 			]
 		},
 		{
@@ -16,8 +16,7 @@
 			links: [
 				{ label: 'Apply', href: '/join' },
 				{ label: 'Member login', href: '/login' },
-				{ label: 'Referral programme', href: '/referrals' },
-				{ label: 'Verify a member pass', href: '/membership-card' }
+				{ label: 'Fee & benefits', href: '/#membership' }
 			]
 		}
 	];
@@ -35,7 +34,11 @@
 					<p class="eyebrow text-brass-300">{col.title}</p>
 					<ul class="mt-6 space-y-3 text-sm">
 						{#each col.links as l (l.href)}
-							<li><a href={l.href} class="text-ivory-200/70 transition-colors hover:text-ivory-50">{l.label}</a></li>
+							<li>
+								<a href={l.href} class="text-ivory-200/70 transition-colors hover:text-ivory-50"
+									>{l.label}</a
+								>
+							</li>
 						{/each}
 					</ul>
 				</nav>
@@ -44,13 +47,17 @@
 				<p class="eyebrow text-brass-300">Secretariat</p>
 				<address class="mt-6 text-sm leading-relaxed text-ivory-200/70 not-italic">
 					{#each contact.address as line (line)}{line}<br />{/each}
-					<a href={contact.phoneHref} class="mt-4 inline-block hover:text-ivory-50">{contact.phone}</a><br />
+					<a href={contact.phoneHref} class="mt-4 inline-block hover:text-ivory-50"
+						>{contact.phone}</a
+					><br />
 					<a href="mailto:{contact.email}" class="hover:text-ivory-50">{contact.email}</a>
 				</address>
 			</div>
 		</div>
 
-		<div class="mt-20 flex flex-col justify-between gap-4 border-t border-ivory-100/10 py-8 text-xs text-ivory-200/40 sm:flex-row">
+		<div
+			class="mt-20 flex flex-col justify-between gap-4 border-t border-ivory-100/10 py-8 text-xs text-ivory-200/40 sm:flex-row"
+		>
 			<p>© {new Date().getFullYear()} {brand.name}. All rights reserved.</p>
 			<p>Official chapter · Salem, Tamil Nadu</p>
 			<p>

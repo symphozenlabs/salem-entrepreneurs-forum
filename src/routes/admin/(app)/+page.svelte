@@ -1,14 +1,38 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import { eventShortDate, eventTime } from '#lib/events.ts';
+	import { rupees } from '#lib/content.ts';
 
 	let { data }: PageProps = $props();
 
 	const stats = $derived([
-		{ label: 'Upcoming events on the site', value: data.upcoming.length, href: '/admin/events' },
-		{ label: 'Draft events', value: data.drafts, href: '/admin/events' },
-		{ label: 'Open enquiries', value: data.openEnquiries, href: '/admin/enquiries' },
-		{ label: 'Admins', value: data.admins, href: '/admin/admins' }
+		{
+			label: 'Applications to verify',
+			value: String(data.pendingApplications),
+			href: '/admin/applications'
+		},
+		{
+			label: 'Payments to verify (events, joining, renewals)',
+			value: String(data.pendingPayments),
+			href: '/admin/payments'
+		},
+		{ label: 'Active members', value: String(data.activeMembers), href: '/admin/members' },
+		{ label: 'Open enquiries', value: String(data.openEnquiries), href: '/admin/enquiries' },
+		{
+			label: 'Upcoming events on the site',
+			value: String(data.upcomingTotal),
+			href: '/admin/events'
+		},
+		{
+			label: 'Connects between members',
+			value: String(data.network.connects),
+			href: '/admin/members'
+		},
+		{
+			label: 'Business recorded (confirmed)',
+			value: rupees(data.network.business),
+			href: '/admin/members'
+		}
 	]);
 	const when = (d: Date) => `${eventShortDate(d)}, ${eventTime(d)}`;
 </script>

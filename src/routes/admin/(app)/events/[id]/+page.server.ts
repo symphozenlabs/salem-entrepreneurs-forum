@@ -30,6 +30,11 @@ export const load: PageServerLoad = async ({ params }) => {
 		price: e.price ?? '',
 		seats: e.seats?.toString() ?? '',
 		registrationUrl: e.registrationUrl ?? '',
+		registration: e.registration,
+		fee: String(e.fee),
+		memberFee: e.memberFee?.toString() ?? '',
+		registrationClosesAt: toLocalInput(e.registrationClosesAt),
+		formFields: JSON.stringify(e.formFields ?? []),
 		published: e.published ? 'on' : ''
 	};
 	return { event: e, values };
