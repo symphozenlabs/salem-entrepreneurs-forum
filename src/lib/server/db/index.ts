@@ -23,6 +23,25 @@ function connect(): Db {
 	return (client ??= drizzle(neon(DATABASE_URL), { schema }));
 }
 
+/**
+ * Runs the queries `build` returns in one transaction, in order, returning each one's
+ * result. Neon's HTTP driver can't hold a transaction open between round trips, so on
+ * Neon this is a batch; the local dev database runs a real transaction.
+ */
+export async function atomically(build: (d: Db) => readonly unknown[]): Promise<unknown[]> {
+	const real = connect();
+	if (typeof real.batch === 'function') return real.batch(build(real) as never);
+	// PGlite: an ordinary interactive transaction.
+	const local = real as unknown as {
+		transaction(fn: (tx: Db) => Promise<unknown[]>): Promise<unknown[]>;
+	};
+	return local.transaction(async (tx) => {
+		const out: unknown[] = [];
+		for (const q of build(tx)) out.push(await q);
+		return out;
+	});
+}
+
 // Connects on first use, so pages that never query the database still render
 // when DATABASE_URL isn't configured (e.g. a fresh Vercel deployment).
 export const db = new Proxy({} as Db, {

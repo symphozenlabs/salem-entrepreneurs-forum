@@ -13,10 +13,25 @@ const under = (path: string, root: string) => path === root || path.startsWith(r
 
 const redirect = (location: string) => new Response(null, { status: 303, headers: { location } });
 
+/**
+ * The path as the router matches it. Routes are matched on the decoded path, so
+ * "/%61dmin" reaches /admin: guarding the raw path would let it straight through.
+ */
+function routedPath(pathname: string) {
+	try {
+		return pathname.split('%25').map(decodeURI).join('%25');
+	} catch {
+		return null;
+	}
+}
+
 const handleBetterAuth: Handle = async ({ event, resolve }) => {
-	const path = event.url.pathname;
-	const admin = under(path, '/admin');
-	const member = under(path, '/member');
+	const path = routedPath(event.url.pathname);
+	if (path === null) return new Response('Bad request', { status: 400 });
+	// Checked on the matched route too, so no spelling of the URL can dodge the guard.
+	const route = event.route.id ?? '';
+	const admin = under(path, '/admin') || under(route, '/admin');
+	const member = under(path, '/member') || under(route, '/member');
 	const guarded = admin || member;
 
 	// Imported lazily: a missing DATABASE_URL or BETTER_AUTH_SECRET should break

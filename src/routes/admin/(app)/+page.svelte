@@ -32,6 +32,11 @@
 			label: 'Business recorded (confirmed)',
 			value: rupees(data.network.business),
 			href: '/admin/members'
+		},
+		{
+			label: 'Collected from events (confirmed)',
+			value: rupees(data.eventsCollected),
+			href: '/admin/payments?type=events&show=verified'
 		}
 	]);
 	const when = (d: Date) => `${eventShortDate(d)}, ${eventTime(d)}`;

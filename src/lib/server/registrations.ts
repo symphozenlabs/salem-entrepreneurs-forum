@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
-import { db } from '#lib/server/db/index.ts';
+import { atomically, db } from '#lib/server/db/index.ts';
 import { event, eventRegistration, payment, paymentProof } from '#lib/server/db/schema.ts';
 import { decisionEmail, sendEmail } from '#lib/server/email.ts';
 import { utrInUse } from '#lib/server/members.ts';
@@ -8,6 +8,9 @@ import type { StoredImage } from '#lib/server/uploads.ts';
 import { eventDate, eventTimeRange } from '#lib/events.ts';
 import type { Answer } from '#lib/forms.ts';
 import { rupees } from '#lib/content.ts';
+
+/** One lock shared by every registration, so seat counts and UTR checks never race. */
+const REGISTRATION_LOCK = 72_710_001;
 
 /** Registrations holding a seat: waiting for payment checks, or confirmed. */
 const holdsSeat = inArray(eventRegistration.status, ['pending', 'confirmed']);
@@ -60,6 +63,11 @@ const when = (e: EventForRegistration) =>
 /**
  * Records a registration. Free events are confirmed at once; paid ones wait for the
  * admin to match the UPI payment. Returns the registration's reference code.
+ *
+ * Saving happens in one transaction that first takes a lock every registration
+ * shares, then inserts only if a seat is free, the email isn't already registered and
+ * the UTR is unused — so two people can't take the last seat at the same moment, and a
+ * registration is never saved without its payment.
  */
 export async function register(
 	ev: EventForRegistration,
@@ -74,62 +82,81 @@ export async function register(
 		proof: StoredImage | null;
 	}
 ) {
-	const [dupe] = await db
-		.select({ id: eventRegistration.id })
-		.from(eventRegistration)
-		.where(
-			and(
-				eq(eventRegistration.eventId, ev.id),
-				eq(eventRegistration.email, input.email),
-				ne(eventRegistration.status, 'rejected')
-			)
-		);
-	if (dupe) return { error: 'This email is already registered for this event.' };
-	if (ev.seats && (await seatsTaken(ev.id)) >= ev.seats)
-		return { error: 'Sorry — the event just filled up.' };
-	if (input.amount > 0 && input.utr && (await utrInUse(input.utr)))
-		return {
-			error: 'This transaction ID has already been used. Check it in your UPI app.',
-			field: 'utr'
-		};
-
 	const free = input.amount === 0;
-	let row: { id: number; code: string } | undefined;
-	for (let attempt = 0; attempt < 5 && !row; attempt++) {
+	const utr = free ? null : input.utr!;
+
+	let saved: { id: number; code: string } | undefined;
+	let code = '';
+	for (let attempt = 0; attempt < 5 && !code; attempt++) {
+		const candidate = newCode();
 		try {
-			[row] = await db
-				.insert(eventRegistration)
-				.values({
-					eventId: ev.id,
-					code: newCode(),
-					name: input.name,
-					email: input.email,
-					phone: input.phone,
-					answers: input.answers,
-					amount: input.amount,
-					userId: input.userId,
-					status: free ? 'confirmed' : 'pending',
-					...(free ? { reviewedAt: new Date() } : {})
-				})
-				.returning({ id: eventRegistration.id, code: eventRegistration.code });
+			const results = await atomically((d) => {
+				const lock = d.execute(sql`select pg_advisory_xact_lock(${REGISTRATION_LOCK})`);
+				// Inserts only while a seat is free, the email isn't registered and the UTR is unused.
+				const insertRegistration = d.execute(sql`
+					insert into ${eventRegistration}
+						(event_id, code, name, email, phone, answers, amount, user_id, status, reviewed_at)
+					select ${event.id}, ${candidate}, ${input.name}, ${input.email}, ${input.phone},
+						${JSON.stringify(input.answers)}::jsonb, ${input.amount}::int, ${input.userId},
+						${free ? 'confirmed' : 'pending'}, ${free ? sql`now()` : sql`null`}
+					from ${event}
+					where ${event.id} = ${ev.id}
+						and (${event.seats} is null or (select count(*) from ${eventRegistration}
+							where ${eventRegistration.eventId} = ${ev.id}
+							and ${eventRegistration.status} in ('pending', 'confirmed')) < ${event.seats})
+						and not exists (select 1 from ${eventRegistration}
+							where ${eventRegistration.eventId} = ${ev.id} and ${eventRegistration.email} = ${input.email}
+							and ${eventRegistration.status} <> 'rejected')
+						${utr ? sql`and not exists (select 1 from ${payment} where ${payment.utr} = ${utr} and ${payment.status} <> 'rejected')` : sql``}
+					returning id, code`);
+				if (!utr) return [lock, insertRegistration];
+				// Inserts nothing when the registration above was refused.
+				const insertPayment = d.execute(sql`
+					insert into ${payment} (registration_id, user_id, purpose, amount, utr)
+					select id, user_id, 'event', amount, ${utr} from ${eventRegistration} where code = ${candidate}`);
+				return [lock, insertRegistration, insertPayment];
+			});
+			// Raw results come back as rows (Neon batch) or as { rows } (PGlite).
+			const res = results[1] as { rows?: unknown[] } | unknown[];
+			saved = (Array.isArray(res) ? res : (res.rows ?? []))[0] as typeof saved;
+			code = candidate;
 		} catch (e) {
 			if (attempt === 4) throw e; // a clash on the random code; try another
 		}
 	}
-	if (!row) throw new Error('Could not save the registration');
 
-	if (!free) {
-		const [pay] = await db
-			.insert(payment)
-			.values({
-				registrationId: row.id,
-				userId: input.userId,
-				purpose: 'event',
-				amount: input.amount,
-				utr: input.utr!
-			})
-			.returning({ id: payment.id });
-		if (input.proof) await db.insert(paymentProof).values({ paymentId: pay.id, ...input.proof });
+	if (!saved) {
+		// Refused: say why. (Only for the message — the decision was made above.)
+		const [dupe] = await db
+			.select({ id: eventRegistration.id })
+			.from(eventRegistration)
+			.where(
+				and(
+					eq(eventRegistration.eventId, ev.id),
+					eq(eventRegistration.email, input.email),
+					ne(eventRegistration.status, 'rejected')
+				)
+			);
+		if (dupe) return { error: 'This email is already registered for this event.' };
+		if (utr && (await utrInUse(utr)))
+			return {
+				error: 'This transaction ID has already been used. Check it in your UPI app.',
+				field: 'utr'
+			};
+		return { error: 'Sorry — the event just filled up.' };
+	}
+
+	if (utr && input.proof) {
+		// The screenshot is optional: if saving it fails, the registration still stands.
+		try {
+			const [pay] = await db
+				.select({ id: payment.id })
+				.from(payment)
+				.where(eq(payment.registrationId, saved.id));
+			if (pay) await db.insert(paymentProof).values({ paymentId: pay.id, ...input.proof });
+		} catch (e) {
+			console.error('[register] payment screenshot not saved:', e);
+		}
 	}
 
 	await sendEmail(
@@ -138,11 +165,11 @@ export async function register(
 			email: input.email,
 			title: free ? `You're registered: ${ev.title}` : `Registration received: ${ev.title}`,
 			message: free
-				? `Your seat is confirmed.\n\n${ev.title}\n${when(ev)}\n${ev.venue}\n\nReference: ${row.code}`
-				: `We've received your registration and payment of ${rupees(input.amount)} (UTR ${input.utr}). We'll confirm your seat once the payment is verified.\n\n${ev.title}\n${when(ev)}\n${ev.venue}\n\nReference: ${row.code}`
+				? `Your seat is confirmed.\n\n${ev.title}\n${when(ev)}\n${ev.venue}\n\nReference: ${code}`
+				: `We've received your registration and payment of ${rupees(input.amount)} (UTR ${utr}). We'll confirm your seat once the payment is verified.\n\n${ev.title}\n${when(ev)}\n${ev.venue}\n\nReference: ${code}`
 		})
 	);
-	return { code: row.code, confirmed: free };
+	return { code, confirmed: free };
 }
 
 /** Registrations for one event, with the payment details the admin checks. */

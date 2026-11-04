@@ -12,7 +12,8 @@ const TABS = ['pending', 'confirmed', 'rejected', 'all'] as const;
 type Tab = (typeof TABS)[number];
 
 export const load: PageServerLoad = async ({ params, url }) => {
-	const ev = await eventById(Number(params.id));
+	const id = Number(params.id);
+	const ev = Number.isInteger(id) && id > 0 ? await eventById(id) : undefined;
 	if (!ev) error(404, 'No such event.');
 	const all = await registrationsFor(ev.id);
 	const param = url.searchParams.get('show') as Tab;

@@ -36,6 +36,8 @@ export type PublicEvent = {
 	memberFee: number | null;
 	registrationClosesAt: Date | null;
 	coverVersion: number | null;
+	/** Seats held through our registration form. */
+	taken: number;
 };
 
 export const registrationModes = {

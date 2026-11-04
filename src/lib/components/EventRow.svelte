@@ -8,6 +8,7 @@
 		isPast,
 		reserveUrl,
 		feeLabel,
+		registrationState,
 		type PublicEvent
 	} from '#lib/events.ts';
 
@@ -15,6 +16,13 @@
 
 	const cover = $derived(coverUrl(e));
 	const past = $derived(isPast(e));
+	const closed = $derived(
+		e.registration === 'form' && registrationState(e, e.taken) !== 'open'
+			? registrationState(e, e.taken) === 'full'
+				? 'Fully booked'
+				: 'Registration closed'
+			: null
+	);
 	const weekday = $derived(
 		new Intl.DateTimeFormat('en-IN', { weekday: 'short', timeZone: 'Asia/Kolkata' }).format(
 			e.startsAt
@@ -45,13 +53,20 @@
 		<p class="mt-4 max-w-xl text-stone-muted">{e.summary}</p>
 		{#if !past}
 			<div class="relative z-10 mt-6 flex flex-wrap items-center gap-5">
-				<a
-					href={reserveUrl(e)}
-					target={e.registration === 'form' ? undefined : '_blank'}
-					rel={e.registration === 'form' ? undefined : 'noopener'}
-					class="rounded-full bg-ink-900 px-6 py-3 text-xs font-semibold tracking-wide text-ivory-100 transition-colors hover:bg-ink-700"
-					>{e.registration === 'form' ? 'Register' : 'Reserve a seat'}</a
-				>
+				{#if closed}
+					<span
+						class="rounded-full bg-ink-900/5 px-6 py-3 text-xs font-semibold tracking-wide text-stone-muted"
+						>{closed}</span
+					>
+				{:else}
+					<a
+						href={reserveUrl(e)}
+						target={e.registration === 'form' ? undefined : '_blank'}
+						rel={e.registration === 'form' ? undefined : 'noopener'}
+						class="rounded-full bg-ink-900 px-6 py-3 text-xs font-semibold tracking-wide text-ivory-100 transition-colors hover:bg-ink-700"
+						>{e.registration === 'form' ? 'Register' : 'Reserve a seat'}</a
+					>
+				{/if}
 				<a
 					href="/events/{e.slug}"
 					class="text-xs font-semibold tracking-wide text-ink-900 hover:text-brass-600">Details →</a

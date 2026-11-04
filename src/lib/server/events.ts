@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
-import { event, eventCover } from '#lib/server/db/schema.ts';
+import { event, eventCover, eventRegistration } from '#lib/server/db/schema.ts';
 import { categories, fromLocalInput, registrationModes, type PublicEvent } from '#lib/events.ts';
 import { cleanFields } from '#lib/forms.ts';
 import { readImage } from '#lib/server/uploads.ts';
@@ -27,7 +27,9 @@ const columns = {
 	fee: event.fee,
 	memberFee: event.memberFee,
 	registrationClosesAt: event.registrationClosesAt,
-	coverVersion: sql<number | null>`floor(extract(epoch from ${eventCover.updatedAt}))::int`
+	coverVersion: sql<number | null>`floor(extract(epoch from ${eventCover.updatedAt}))::int`,
+	/** Seats held through our form (pending or confirmed), for "Fully booked" on cards. */
+	taken: sql<number>`(select count(*) from ${eventRegistration} where ${eventRegistration.eventId} = ${event.id} and ${eventRegistration.status} in ('pending', 'confirmed'))::int`
 };
 
 const withCover = () =>
@@ -146,7 +148,7 @@ export async function parseEventForm(data: FormData) {
 	if (seats !== null && (!Number.isInteger(seats) || seats < 1 || seats > 100000))
 		errors.seats = 'Seats must be a whole number.';
 	if (mapUrl === undefined) errors.mapUrl = 'Paste a full link starting with https://';
-	if (registrationUrl === undefined)
+	if (registrationUrl === undefined && str(data, 'registration') === 'link')
 		errors.registrationUrl = 'Paste a full link starting with https://';
 
 	// Registration: how people sign up, and for our own form its fee, deadline and questions.
@@ -163,22 +165,27 @@ export async function parseEventForm(data: FormData) {
 	if (!(registration in registrationModes)) errors.registration = 'Choose how people register.';
 	if (registration === 'link' && !registrationUrl)
 		errors.registrationUrl = 'Paste the registration link, or choose another way to register.';
-	if (registration === 'form') {
-		if (!Number.isInteger(fee) || fee < 0 || fee > 10_000_000)
-			errors.fee = 'Enter the fee in whole rupees (0 for free).';
-		if (memberFee !== null && (!Number.isInteger(memberFee) || memberFee < 0 || memberFee > fee))
-			errors.memberFee = 'The member fee must be a whole number, no more than the fee.';
-		if (closesRaw && !registrationClosesAt) errors.registrationClosesAt = 'That date isn’t valid.';
-		let parsed: unknown = [];
-		try {
-			parsed = JSON.parse(str(data, 'formFields') || '[]');
-		} catch {
-			errors.formFields = 'The form couldn’t be read. Please try again.';
-		}
-		const cleaned = cleanFields(parsed);
-		if (cleaned.error) errors.formFields = cleaned.error;
-		formFields = cleaned.fields;
+	// The form's settings are kept even while another way to register is chosen, so
+	// switching back doesn't lose them; they're only checked strictly when in use.
+	const strict = registration === 'form';
+	const feeOk = Number.isInteger(fee) && fee >= 0 && fee <= 10_000_000;
+	const memberFeeOk =
+		memberFee === null ||
+		(Number.isInteger(memberFee) && memberFee >= 0 && feeOk && memberFee <= fee);
+	if (strict && !feeOk) errors.fee = 'Enter the fee in whole rupees (0 for free).';
+	if (strict && !memberFeeOk)
+		errors.memberFee = 'The member fee must be a whole number, no more than the fee.';
+	if (strict && closesRaw && !registrationClosesAt)
+		errors.registrationClosesAt = 'That date isn’t valid.';
+	let parsed: unknown = [];
+	try {
+		parsed = JSON.parse(str(data, 'formFields') || '[]');
+	} catch {
+		if (strict) errors.formFields = 'The form couldn’t be read. Please try again.';
 	}
+	const cleaned = cleanFields(parsed);
+	if (strict && cleaned.error) errors.formFields = cleaned.error;
+	formFields = cleaned.error ? [] : cleaned.fields;
 
 	let cover: CoverChange = null;
 	const image = await readImage(data, 'cover');
@@ -202,11 +209,11 @@ export async function parseEventForm(data: FormData) {
 		mapUrl: mapUrl ?? null,
 		price: optional(data, 'price'),
 		seats,
-		registrationUrl: registration === 'link' ? (registrationUrl ?? null) : null,
+		registrationUrl: registrationUrl ?? null,
 		registration,
-		fee: registration === 'form' ? fee : 0,
-		memberFee: registration === 'form' ? memberFee : null,
-		registrationClosesAt: registration === 'form' ? registrationClosesAt : null,
+		fee: feeOk ? fee : 0,
+		memberFee: memberFeeOk ? memberFee : null,
+		registrationClosesAt,
 		formFields,
 		published: data.get('published') === 'on'
 	};

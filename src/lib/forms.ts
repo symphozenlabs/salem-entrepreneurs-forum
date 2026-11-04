@@ -51,6 +51,11 @@ export function cleanFields(input: unknown): { fields: FormField[]; error?: stri
 			.trim()
 			.slice(0, 200);
 		if (!label) return { fields, error: 'Every question needs a label.' };
+		if (fields.some((x) => x.label.toLowerCase() === label.toLowerCase()))
+			return {
+				fields,
+				error: `Two questions are both called “${label}”. Give each its own wording.`
+			};
 		let id =
 			String(f.id ?? '')
 				.replace(/[^a-z0-9]/gi, '')
@@ -87,7 +92,8 @@ export function cleanFields(input: unknown): { fields: FormField[]; error?: stri
 /** Form-control name for a question, kept apart from the built-in fields. */
 export const fieldName = (f: FormField) => `q_${f.id}`;
 
-export type Answer = { label: string; value: string };
+/** `id` is the question's id (older answers may lack it); `label` is its wording at the time. */
+export type Answer = { id?: string; label: string; value: string };
 
 /**
  * Reads a registrant's answers from submitted form data. Returns the answers in
@@ -114,7 +120,7 @@ export function readAnswers(fields: FormField[], data: FormData) {
 		if (!value) {
 			if (f.required)
 				errors[f.id] = f.type === 'checkbox' ? 'Pick at least one.' : 'Please answer this.';
-			answers.push({ label: f.label, value: '' });
+			answers.push({ id: f.id, label: f.label, value: '' });
 			continue;
 		}
 		if (f.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
@@ -126,7 +132,7 @@ export function readAnswers(fields: FormField[], data: FormData) {
 		if ((f.type === 'select' || f.type === 'radio') && !f.options?.includes(value))
 			errors[f.id] = 'Pick one of the options.';
 		if (f.type === 'yesno' && value !== 'Yes' && value !== 'No') errors[f.id] = 'Pick Yes or No.';
-		answers.push({ label: f.label, value });
+		answers.push({ id: f.id, label: f.label, value });
 	}
 	return { answers, errors };
 }

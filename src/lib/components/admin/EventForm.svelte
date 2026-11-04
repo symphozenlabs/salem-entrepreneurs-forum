@@ -233,74 +233,74 @@
 					</span>
 					{#if errors.seats}<p class="field-error">{errors.seats}</p>{/if}
 				</label>
-				{#if registration === 'link'}
-					<label class="block">
-						<span class="field-label">Registration link *</span>
-						<input
-							name="registrationUrl"
-							type="url"
-							value={values.registrationUrl ?? ''}
-							class="field-input"
-							placeholder="https://forms.gle/…"
-						/>
-						{#if errors.registrationUrl}<p class="field-error">{errors.registrationUrl}</p>{/if}
-					</label>
-				{:else if registration === 'form'}
-					<div>
-						<span class="field-label">Registration closes</span>
-						<DateTimePicker
-							name="registrationClosesAt"
-							label="Registration closes"
-							value={values.registrationClosesAt ?? ''}
-							placeholder="When the event starts"
-							optional
-							anchor={startsAt}
-						/>
-						<span class="mt-1.5 block text-xs text-stone-muted"
-							>Empty: open until the event starts.</span
-						>
-						{#if errors.registrationClosesAt}<p class="field-error">
-								{errors.registrationClosesAt}
-							</p>{/if}
-					</div>
-					<label class="block">
-						<span class="field-label">Fee (₹)</span>
-						<input
-							name="fee"
-							inputmode="numeric"
-							value={values.fee ?? '0'}
-							class="field-input"
-							placeholder="0"
-						/>
-						<span class="mt-1.5 block text-xs text-stone-muted"
-							>0 = free; free registrations are confirmed straight away.</span
-						>
-						{#if errors.fee}<p class="field-error">{errors.fee}</p>{/if}
-					</label>
-					<label class="block">
-						<span class="field-label">Member fee (₹)</span>
-						<input
-							name="memberFee"
-							inputmode="numeric"
-							value={values.memberFee ?? ''}
-							class="field-input"
-							placeholder="Same as fee"
-						/>
-						<span class="mt-1.5 block text-xs text-stone-muted"
-							>Optional lower fee for signed-in members.</span
-						>
-						{#if errors.memberFee}<p class="field-error">{errors.memberFee}</p>{/if}
-					</label>
-				{:else}
+				<!-- Every option's settings stay in the form (just hidden), so switching back and
+				     forth before saving loses nothing. -->
+				<label class="block" class:hidden={registration !== 'link'}>
+					<span class="field-label">Registration link *</span>
+					<input
+						name="registrationUrl"
+						type="url"
+						value={values.registrationUrl ?? ''}
+						class="field-input"
+						placeholder="https://forms.gle/…"
+					/>
+					{#if errors.registrationUrl}<p class="field-error">{errors.registrationUrl}</p>{/if}
+				</label>
+				<div class:hidden={registration !== 'form'}>
+					<span class="field-label">Registration closes</span>
+					<DateTimePicker
+						name="registrationClosesAt"
+						label="Registration closes"
+						value={values.registrationClosesAt ?? ''}
+						placeholder="When the event starts"
+						optional
+						anchor={startsAt}
+					/>
+					<span class="mt-1.5 block text-xs text-stone-muted"
+						>Empty: open until the event starts.</span
+					>
+					{#if errors.registrationClosesAt}<p class="field-error">
+							{errors.registrationClosesAt}
+						</p>{/if}
+				</div>
+				<label class="block" class:hidden={registration !== 'form'}>
+					<span class="field-label">Fee (₹)</span>
+					<input
+						name="fee"
+						inputmode="numeric"
+						value={values.fee ?? '0'}
+						class="field-input"
+						placeholder="0"
+					/>
+					<span class="mt-1.5 block text-xs text-stone-muted"
+						>0 = free; free registrations are confirmed straight away.</span
+					>
+					{#if errors.fee}<p class="field-error">{errors.fee}</p>{/if}
+				</label>
+				<label class="block" class:hidden={registration !== 'form'}>
+					<span class="field-label">Member fee (₹)</span>
+					<input
+						name="memberFee"
+						inputmode="numeric"
+						value={values.memberFee ?? ''}
+						class="field-input"
+						placeholder="Same as fee"
+					/>
+					<span class="mt-1.5 block text-xs text-stone-muted"
+						>Optional lower fee for signed-in members.</span
+					>
+					{#if errors.memberFee}<p class="field-error">{errors.memberFee}</p>{/if}
+				</label>
+				{#if registration === 'whatsapp'}
 					<p class="self-end text-sm text-stone-muted">
 						“Reserve a seat” opens WhatsApp with the secretariat.
 					</p>
 				{/if}
 			</div>
 
-			{#if registration === 'form'}
+			<div class:hidden={registration !== 'form'}>
 				<FormBuilder value={values.formFields ?? '[]'} error={errors.formFields} />
-			{/if}
+			</div>
 		</fieldset>
 	</div>
 

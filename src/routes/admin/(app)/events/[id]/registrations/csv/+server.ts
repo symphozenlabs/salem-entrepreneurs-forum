@@ -7,15 +7,20 @@ import { eventShortDate, eventTime } from '#lib/events.ts';
 
 /** Every registration for an event as a spreadsheet (opens in Excel or Google Sheets). */
 export const GET: RequestHandler = async ({ params }) => {
-	const ev = await eventById(Number(params.id));
+	const id = Number(params.id);
+	const ev = Number.isInteger(id) && id > 0 ? await eventById(id) : undefined;
 	if (!ev) error(404);
 	const rows = await registrationsFor(ev.id);
 
-	// One column per question: the event's current questions first, then any older ones
-	// that were answered before the form changed.
-	const labels = cleanFields(ev.formFields).fields.map((f) => f.label);
+	// One column per question, matched by the question's id so a renamed question keeps
+	// one column: the event's current questions first, then any removed ones.
+	const fields = cleanFields(ev.formFields).fields;
+	const columns = fields.map((f) => ({ key: f.id, label: f.label }));
+	const keyOf = (a: Answer) =>
+		a.id ?? fields.find((f) => f.label === a.label)?.id ?? `label:${a.label}`;
 	for (const r of rows)
-		for (const a of r.answers as Answer[]) if (!labels.includes(a.label)) labels.push(a.label);
+		for (const a of r.answers as Answer[])
+			if (!columns.some((c) => c.key === keyOf(a))) columns.push({ key: keyOf(a), label: a.label });
 
 	const header = [
 		'Reference',
@@ -27,10 +32,10 @@ export const GET: RequestHandler = async ({ params }) => {
 		'Amount (₹)',
 		'UTR',
 		'Registered',
-		...labels
+		...columns.map((c) => c.label)
 	];
 	const lines = rows.map((r) => {
-		const answers = new Map((r.answers as Answer[]).map((a) => [a.label, a.value]));
+		const answers = new Map((r.answers as Answer[]).map((a) => [keyOf(a), a.value]));
 		return [
 			r.code,
 			r.status,
@@ -41,7 +46,7 @@ export const GET: RequestHandler = async ({ params }) => {
 			String(r.amount),
 			r.utr ?? '',
 			`${eventShortDate(r.createdAt)} ${eventTime(r.createdAt)}`,
-			...labels.map((l) => answers.get(l) ?? '')
+			...columns.map((c) => answers.get(c.key) ?? '')
 		];
 	});
 
