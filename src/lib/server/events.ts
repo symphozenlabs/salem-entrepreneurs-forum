@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
-import { isForumId, type ForumId } from '#lib/forums.ts';
+import { DEFAULT_FORUM, isForumId, type ForumId } from '#lib/forums.ts';
 import { db } from '#lib/server/db/index.ts';
 import { event, eventCover, eventRegistration } from '#lib/server/db/schema.ts';
 import { categories, fromLocalInput, registrationModes, type PublicEvent } from '#lib/events.ts';
@@ -158,7 +158,7 @@ export async function parseEventForm(data: FormData) {
 
 	// Registration: how people sign up, and for our own form its fee, deadline and questions.
 	const registration = str(data, 'registration') || 'whatsapp';
-	const forumPicked = str(data, 'forum') || 'salem';
+	const forumPicked = str(data, 'forum') || DEFAULT_FORUM;
 	if (forumPicked !== 'all' && !isForumId(forumPicked)) errors.forum = 'Choose a forum.';
 	const money = (key: string) => {
 		const v = str(data, key).replace(/[₹,\s]/g, '');

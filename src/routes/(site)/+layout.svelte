@@ -6,9 +6,8 @@
 	import Nav from '#lib/components/Nav.svelte';
 	import Footer from '#lib/components/Footer.svelte';
 	import Preloader from '#lib/components/Preloader.svelte';
-	import ForumPicker from '#lib/components/ForumPicker.svelte';
 
-	let { children, data }: LayoutProps = $props();
+	let { children }: LayoutProps = $props();
 
 	onMount(() => {
 		const stop = startSmoothScroll();
@@ -25,12 +24,7 @@
 </script>
 
 <div class="grain">
-	{#if data.forumChosen}
-		<Preloader />
-	{:else}
-		<!-- First visit: ask which forum before showing a landing page. -->
-		<ForumPicker />
-	{/if}
+	<Preloader />
 	<Nav />
 	<main>
 		{@render children()}

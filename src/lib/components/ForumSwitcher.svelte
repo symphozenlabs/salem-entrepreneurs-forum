@@ -35,7 +35,7 @@
 
 	{#if open}
 		<div
-			class="absolute top-full left-0 mt-3 w-80 overflow-hidden rounded-lg bg-ink-950/95 p-2 text-ivory-100 shadow-2xl ring-1 ring-ivory-100/10 backdrop-blur-xl"
+			class="absolute top-full left-0 mt-3 w-[min(20rem,calc(100vw-3rem))] overflow-hidden rounded-lg bg-ink-950/95 p-2 text-ivory-100 shadow-2xl ring-1 ring-ivory-100/10 backdrop-blur-xl"
 			role="listbox"
 			aria-label="Forums"
 		>

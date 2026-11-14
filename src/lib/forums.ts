@@ -4,10 +4,12 @@
 
 import * as salem from './content.ts';
 
-export const FORUM_IDS = ['salem', 'coimbatore', 'tamilnadu'] as const;
+/** In menu order. */
+export const FORUM_IDS = ['tamilnadu', 'coimbatore', 'salem'] as const;
 export type ForumId = (typeof FORUM_IDS)[number];
 
-export const DEFAULT_FORUM: ForumId = 'salem';
+/** Where visitors land until they pick another forum from the top-left menu. */
+export const DEFAULT_FORUM: ForumId = 'tamilnadu';
 /** Cookie that remembers the visitor's forum (set on the parent domain when subdomains are used). */
 export const FORUM_COOKIE = 'forum';
 
