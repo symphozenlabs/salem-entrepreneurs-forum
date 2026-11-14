@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
-	import { brand, contact } from '#lib/content.ts';
+	import ForumLogo from '#lib/components/ForumLogo.svelte';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	const forum = $derived(activeForum());
+	const brand = $derived(forum.brand);
+	const contact = $derived(activeForum().contact);
 
 	let { form }: PageProps = $props();
 	let busy = $state(false);
@@ -28,7 +32,7 @@
 	<div class="flex items-center justify-center px-6 py-16">
 		<div class="w-full max-w-sm">
 			<a href="/" aria-label="{brand.name} — home"
-				><img src="/brand/logo-light.png" alt={brand.name} class="w-48" /></a
+				><ForumLogo {forum} class="w-48" text="text-3xl text-ivory-50" /></a
 			>
 			<form
 				method="POST"

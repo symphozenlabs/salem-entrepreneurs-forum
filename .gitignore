@@ -30,3 +30,7 @@ story/clips/
 
 # Local embedded database (DATABASE_URL=pglite:./.pglite)
 .pglite
+story/*/clips/
+Assets/*/video/
+story/tamilnadu/source/tn-map-google.png
+story/tamilnadu/source/13.webp

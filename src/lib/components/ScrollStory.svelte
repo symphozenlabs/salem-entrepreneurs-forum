@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { chapters, brand } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	import ForumLogo from './ForumLogo.svelte';
+
+	// The forum is fixed for the page's lifetime (switching forums reloads the page).
+	const forum = activeForum();
+	const { chapters, brand } = forum;
 	import { gsap, ScrollTrigger, getLenis, prefersReducedMotion } from '#lib/motion.ts';
 
 	/**
@@ -141,7 +146,7 @@
 		}
 
 		async function loadFrames() {
-			const res = await fetch('/story/manifest.json').catch(() => null);
+			const res = await fetch(forum.storyManifest).catch(() => null);
 			if (!res?.ok) return;
 			const manifest: Manifest = await res.json();
 			const mobile = window.innerWidth < 768 && !!manifest.sets.mobile;
@@ -243,7 +248,7 @@
 {#if reduced}
 	<section id="story" class="bg-ink-900 px-6 py-32 text-ivory-100">
 		<div class="mx-auto max-w-4xl space-y-24">
-			<img src="/brand/logo-light.png" alt={brand.name} class="w-72" />
+			<ForumLogo {forum} class="w-72" text="text-4xl text-ivory-50" />
 			{#each chapters as c (c.title)}
 				<div>
 					<p class="eyebrow text-brass-300">{c.eyebrow}</p>
@@ -278,21 +283,25 @@
 				class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgb(7_13_24/0.75))]"
 			></div>
 			<div
-				class="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink-950/80 via-ink-950/20 to-transparent"
+				class="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink-950/85 via-ink-950/45 to-transparent"
 			></div>
 
 			<!-- Chapters -->
 			<div class="relative mx-auto flex h-full max-w-7xl items-center px-6 sm:px-10">
 				{#each chapters as c, i (c.title)}
-					<div class="absolute max-w-2xl will-change-transform" style={chapterStyle(i, progress)}>
+					<div
+						class="absolute inset-x-6 max-w-2xl will-change-transform sm:inset-x-10"
+						style={chapterStyle(i, progress)}
+					>
 						{#if i === 0}
 							<div data-story-intro>
-								<img
-									src="/brand/logo-light.png"
-									alt={brand.name}
-									class="mb-10 w-60 sm:w-80"
-									fetchpriority="high"
-								/>
+								<div class="mb-10">
+									<ForumLogo
+										{forum}
+										class="w-60 sm:w-80"
+										text="text-3xl text-ivory-50 sm:text-4xl"
+									/>
+								</div>
 								<p class="eyebrow text-brass-300">{c.eyebrow}</p>
 								<h1 class="display mt-5 text-[clamp(3rem,8vw,7rem)] text-ivory-50">
 									{c.title}
@@ -361,7 +370,8 @@
 			>
 				<span class="eyebrow">Scroll to begin</span>
 				<span class="relative h-12 w-px overflow-hidden bg-ivory-100/20">
-					<span class="absolute inset-x-0 top-0 h-1/2 animate-[cue_1.8s_ease-in-out_infinite] bg-brass-300"
+					<span
+						class="absolute inset-x-0 top-0 h-1/2 animate-[cue_1.8s_ease-in-out_infinite] bg-brass-300"
 					></span>
 				</span>
 			</div>

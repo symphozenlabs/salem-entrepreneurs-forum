@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
-	import { brand, contact } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	const brand = $derived(activeForum().brand);
+	const contact = $derived(activeForum().contact);
 	import { eventShortDate } from '#lib/events.ts';
 	import { reveal, rise } from '#lib/motion.ts';
 	import EventRow from '#lib/components/EventRow.svelte';
@@ -21,7 +23,7 @@
 		<p class="eyebrow text-brass-300">Events</p>
 		<h1 use:reveal class="display mt-6 text-[clamp(3rem,8vw,7rem)]">The forum calendar.</h1>
 		<p class="mt-6 max-w-lg text-lg text-ivory-200/70">
-			Monthly conclaves, masterclasses and dinners — where Salem’s founders meet in person.
+			{activeForum().eventsIntro}
 		</p>
 	</div>
 </section>

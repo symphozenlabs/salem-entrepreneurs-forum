@@ -1,4 +1,8 @@
-import { ORIGIN, BETTER_AUTH_SECRET } from '$app/env/private';
+import { ORIGIN, BETTER_AUTH_SECRET, FORUM_BASE_DOMAIN } from '$app/env/private';
+import { forumList } from '#lib/forums.ts';
+
+// With the forums on subdomains of one domain, one sign-in works on all of them.
+const base = (FORUM_BASE_DOMAIN || '').replace(/^\.+|\.+$/g, '').toLowerCase();
 import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
@@ -8,6 +12,16 @@ import { db } from '#lib/server/db/index.ts';
 export const auth = betterAuth({
 	baseURL: ORIGIN,
 	secret: BETTER_AUTH_SECRET,
+	...(base
+		? {
+				trustedOrigins: [
+					`https://${base}`,
+					`https://www.${base}`,
+					...forumList.map((f) => `https://${f.subdomain}.${base}`)
+				],
+				advanced: { crossSubDomainCookies: { enabled: true, domain: base } }
+			}
+		: {}),
 	database: drizzleAdapter(db, { provider: 'pg' }),
 	// Accounts are created by admins (see createAccount), never by public sign-up.
 	emailAndPassword: { enabled: true, disableSignUp: true },

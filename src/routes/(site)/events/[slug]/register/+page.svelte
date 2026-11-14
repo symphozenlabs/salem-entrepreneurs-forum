@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
-	import { brand, rupees } from '#lib/content.ts';
+	import { rupees } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	const brand = $derived(activeForum().brand);
 	import { eventDate, eventTimeRange } from '#lib/events.ts';
 	import { shrinkImageInput } from '#lib/image.ts';
 	import FormFields from '#lib/components/FormFields.svelte';

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { rupees, contact } from '#lib/content.ts';
+	import { rupees } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	const contact = $derived(activeForum().contact);
 	import { gpayLinks, upiLink, type PaymentInfo } from '#lib/membership.ts';
 
 	type Props = {

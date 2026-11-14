@@ -9,6 +9,13 @@ export const variables = defineEnvVars({
 		description:
 			'Secret used to sign tokens. For production use 32 characters generated with high entropy. See [Better Auth installation](https://www.better-auth.com/docs/installation).'
 	},
+	// Optional: the custom domain the forums live under as subdomains (salem.<domain>,
+	// coimbatore.<domain>, tamilnadu.<domain>). Unset, the forum is chosen by cookie.
+	FORUM_BASE_DOMAIN: {
+		description:
+			'Parent domain for the forum subdomains, e.g. `entrepreneursforum.in`. Leave empty on *.vercel.app.',
+		schema: (value) => value ?? ''
+	},
 	// Optional: without these, admins are shown new members' passwords to share by hand.
 	RESEND_API_KEY: {
 		description: 'Resend API key for sending member emails.',

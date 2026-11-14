@@ -36,7 +36,7 @@ const FIELDS = [
 ] as const;
 
 export const actions: Actions = {
-	default: async ({ request }) => {
+	default: async ({ request, locals }) => {
 		const data = await request.formData();
 		const v = Object.fromEntries(
 			FIELDS.map((k) => [k, String(data.get(k) ?? '').trim()])
@@ -114,7 +114,8 @@ export const actions: Actions = {
 					city: v.city || null,
 					website: website ?? null,
 					about: v.about || null,
-					referredBy: v.referredBy || null
+					referredBy: v.referredBy || null,
+					forum: locals.forum
 				})
 				.returning({ id: membershipApplication.id });
 			const [pay] = await db

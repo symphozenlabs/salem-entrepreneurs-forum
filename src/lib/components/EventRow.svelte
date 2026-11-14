@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { activeForum } from '#lib/forum.svelte.ts';
+	import ForumLogo from './ForumLogo.svelte';
 	import CoverImage from '#lib/components/CoverImage.svelte';
 	import {
 		coverUrl,
@@ -87,7 +89,12 @@
 			/>
 		{:else}
 			<div class="grid h-full place-items-center">
-				<img src="/brand/logo-light.png" alt="" class="w-2/3 opacity-30" />
+				<ForumLogo
+					forum={activeForum()}
+					alt=""
+					class="w-2/3 opacity-30"
+					text="text-3xl text-ivory-50 opacity-30"
+				/>
 			</div>
 		{/if}
 	</div>

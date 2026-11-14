@@ -17,6 +17,8 @@ export const contactMessage = pgTable('contact_message', {
 	email: text('email').notNull(),
 	business: text('business'),
 	message: text('message').notNull(),
+	/** Which forum's site it was sent from: salem | coimbatore | tamilnadu. */
+	forum: text('forum').notNull().default('salem'),
 	handled: boolean('handled').notNull().default(false),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
@@ -49,6 +51,8 @@ export const event = pgTable('event', {
 	/** The admin-built registration form (see src/lib/forms.ts), beyond name, email and phone. */
 	formFields: jsonb('form_fields').notNull().default([]),
 	published: boolean('published').notNull().default(false),
+	/** The forum it belongs to (salem | coimbatore | tamilnadu), or `all` to list it on every forum. */
+	forum: text('forum').notNull().default('salem'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true })
 		.notNull()
@@ -118,6 +122,8 @@ export const membershipApplication = pgTable('membership_application', {
 	website: text('website'),
 	about: text('about'),
 	referredBy: text('referred_by'),
+	/** The forum's site the application came through. Membership itself covers every forum. */
+	forum: text('forum').notNull().default('salem'),
 	/** pending | approved | rejected */
 	status: text('status').notNull().default('pending'),
 	adminNote: text('admin_note'),

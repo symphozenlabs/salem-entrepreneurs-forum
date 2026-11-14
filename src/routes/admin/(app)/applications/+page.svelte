@@ -3,6 +3,7 @@
 	import type { PageProps } from './$types';
 	import { rupees } from '#lib/content.ts';
 	import { eventShortDate, eventTime } from '#lib/events.ts';
+	import ForumBadge from '#lib/components/admin/ForumBadge.svelte';
 	import CredentialsNotice from '#lib/components/admin/CredentialsNotice.svelte';
 
 	let { data, form }: PageProps = $props();
@@ -67,7 +68,10 @@
 			<li class="rounded-lg border border-ink-900/10 bg-white p-5 sm:p-6">
 				<div class="flex flex-wrap items-start justify-between gap-4">
 					<div>
-						<p class="text-lg font-semibold">{app.name}</p>
+						<p class="flex items-center gap-2 text-lg font-semibold">
+							{app.name}
+							<ForumBadge forum={app.forum} />
+						</p>
 						<p class="text-sm text-ink-700">
 							{app.designation ? `${app.designation}, ` : ''}{app.business} · {app.industry}{app.city
 								? ` · ${app.city}`

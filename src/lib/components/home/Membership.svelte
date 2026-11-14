@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { rupees, type Membership } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	const forum = $derived(activeForum());
 	import type { PaymentInfo } from '#lib/membership.ts';
 	import { magnetic, reveal, rise } from '#lib/motion.ts';
 
@@ -29,7 +31,7 @@
 	<div class="relative mx-auto max-w-7xl px-6 sm:px-10">
 		<p class="eyebrow text-brass-300">Limited openings</p>
 		<h2 use:reveal class="display mt-6 max-w-4xl text-[clamp(2.75rem,6vw,5.5rem)]">
-			Ready to grow your business in Salem?
+			{forum.joinHeading}
 		</h2>
 
 		<div class="mt-20 grid gap-16 lg:grid-cols-[5fr_6fr]">
