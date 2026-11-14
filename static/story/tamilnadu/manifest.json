@@ -1,0 +1,31 @@
+{
+	"poster": "/story/tamilnadu/poster.jpg",
+	"sets": {
+		"desktop": {
+			"count": 200,
+			"width": 1280,
+			"height": 720,
+			"pattern": "/story/tamilnadu/desktop/f_{i}.jpg",
+			"pad": 4
+		},
+		"mobile": {
+			"count": 200,
+			"width": 720,
+			"height": 960,
+			"pattern": "/story/tamilnadu/mobile/f_{i}.jpg",
+			"pad": 4
+		}
+	},
+	"stills": {
+		"frames": [
+			0,
+			50,
+			99,
+			131,
+			166,
+			199
+		],
+		"desktop": "/story/tamilnadu/stills/desktop/k{i}.jpg",
+		"mobile": "/story/tamilnadu/stills/mobile/k{i}.jpg"
+	}
+}

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { industries } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	const forum = $derived(activeForum());
+	const industries = $derived(forum.industries);
 	import { gsap, prefersReducedMotion } from '#lib/motion.ts';
 
 	let section: HTMLElement;
@@ -56,23 +58,30 @@
 	});
 </script>
 
-<section bind:this={section} data-nav="dark" class="relative overflow-hidden bg-ink-950 text-ivory-100">
+<section
+	bind:this={section}
+	data-nav="dark"
+	class="relative overflow-hidden bg-ink-950 text-ivory-100"
+>
 	<div
 		bind:this={track}
 		class="flex flex-col gap-6 px-6 py-24 lg:h-svh lg:w-max lg:flex-row lg:items-center lg:gap-8 lg:px-10 lg:py-0"
 	>
 		<div class="shrink-0 lg:w-[34vw] lg:pr-10">
 			<p class="eyebrow text-brass-300">Who sits at the table</p>
-			<h2 class="display mt-6 text-[clamp(2.75rem,5vw,5rem)]">Multiple industries.<br />One forum.</h2>
+			<h2 class="display mt-6 text-[clamp(2.75rem,5vw,5rem)]">
+				Multiple industries.<br />One forum.
+			</h2>
 			<p class="mt-6 max-w-sm text-ivory-200/70">
-				Owners, managing directors, founders and factory operators from across Salem and the
-				Kongu belt.
+				{forum.industriesNote}
 			</p>
 		</div>
 
 		{#each industries as ind, i (ind.name)}
 			<article
-				class="group relative h-[60svh] shrink-0 overflow-hidden rounded-[2px] bg-gradient-to-br lg:h-[72svh] lg:w-[30vw] {washes[i]}"
+				class="group relative h-[60svh] shrink-0 overflow-hidden rounded-[2px] bg-gradient-to-br lg:h-[72svh] lg:w-[30vw] {washes[
+					i % washes.length
+				]}"
 			>
 				<span
 					data-num
@@ -83,7 +92,9 @@
 					class="absolute inset-0 bg-gradient-to-t from-ink-950/80 via-transparent to-transparent"
 				></div>
 				<div class="absolute inset-x-0 bottom-0 p-8">
-					<div class="hairline mb-6 w-16 origin-left transition-[width] duration-700 ease-out-expo group-hover:w-full"></div>
+					<div
+						class="hairline mb-6 w-16 origin-left transition-[width] duration-700 ease-out-expo group-hover:w-full"
+					></div>
 					<h3 class="display text-5xl">{ind.name}</h3>
 					<p class="mt-3 text-sm text-ivory-200/70">{ind.note}</p>
 				</div>

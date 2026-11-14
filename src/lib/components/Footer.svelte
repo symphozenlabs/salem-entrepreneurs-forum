@@ -1,12 +1,17 @@
 <script lang="ts">
-	import { brand, contact } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	import ForumLogo from './ForumLogo.svelte';
 
-	const columns = [
+	const forum = $derived(activeForum());
+	const brand = $derived(forum.brand);
+	const contact = $derived(forum.contact);
+
+	const columns = $derived([
 		{
 			title: 'Forum',
 			links: [
 				{ label: 'Our story', href: '/#story' },
-				{ label: 'Why SEF', href: '/#why' },
+				{ label: `Why ${brand.short}`, href: '/#why' },
 				{ label: 'Events', href: '/events' },
 				{ label: 'Member directory', href: '/member/directory' }
 			]
@@ -19,14 +24,14 @@
 				{ label: 'Fee & benefits', href: '/#membership' }
 			]
 		}
-	];
+	]);
 </script>
 
 <footer data-nav="dark" class="relative overflow-hidden bg-ink-950 pt-28 text-ivory-100">
 	<div class="mx-auto max-w-7xl px-6 sm:px-10">
 		<div class="grid gap-14 lg:grid-cols-[5fr_3fr_3fr_4fr]">
 			<div>
-				<img src="/brand/logo-light.png" alt={brand.name} class="w-56" />
+				<ForumLogo {forum} class="w-56" text="text-3xl text-ivory-50" />
 				<p class="mt-8 max-w-xs text-sm leading-relaxed text-ivory-200/60">{brand.description}</p>
 			</div>
 			{#each columns as col (col.title)}
@@ -59,7 +64,7 @@
 			class="mt-20 flex flex-col justify-between gap-4 border-t border-ivory-100/10 py-8 text-xs text-ivory-200/40 sm:flex-row"
 		>
 			<p>© {new Date().getFullYear()} {brand.name}. All rights reserved.</p>
-			<p>Official chapter · Salem, Tamil Nadu</p>
+			<p>Official chapter · {brand.region}</p>
 			<p>
 				Powered by
 				<a
@@ -77,6 +82,6 @@
 		aria-hidden="true"
 		class="display pointer-events-none -mb-[0.2em] text-center text-[34vw] leading-none whitespace-nowrap text-ivory-50/[0.04] select-none"
 	>
-		Salem
+		{forum.id === 'tamilnadu' ? 'தமிழ்நாடு' : brand.place}
 	</p>
 </footer>

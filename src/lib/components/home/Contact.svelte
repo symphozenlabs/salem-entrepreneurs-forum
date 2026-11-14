@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { contact } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	const forum = $derived(activeForum());
+	const contact = $derived(forum.contact);
 	import { reveal } from '#lib/motion.ts';
 
 	type Props = { form?: { ok?: boolean; error?: string } | null };
@@ -11,7 +13,13 @@
 		{ name: 'name', label: 'Full name', type: 'text', autocomplete: 'name', required: true },
 		{ name: 'phone', label: 'Phone / WhatsApp', type: 'tel', autocomplete: 'tel', required: true },
 		{ name: 'email', label: 'Email', type: 'email', autocomplete: 'email', required: true },
-		{ name: 'business', label: 'Business name', type: 'text', autocomplete: 'organization', required: false }
+		{
+			name: 'business',
+			label: 'Business name',
+			type: 'text',
+			autocomplete: 'organization',
+			required: false
+		}
 	] as const;
 </script>
 
@@ -36,11 +44,15 @@
 				</div>
 				<div>
 					<dt class="eyebrow text-stone-muted">Call</dt>
-					<dd class="mt-2"><a href={contact.phoneHref} class="hover:text-brass-600">{contact.phone}</a></dd>
+					<dd class="mt-2">
+						<a href={contact.phoneHref} class="hover:text-brass-600">{contact.phone}</a>
+					</dd>
 				</div>
 				<div>
 					<dt class="eyebrow text-stone-muted">Write</dt>
-					<dd class="mt-2"><a href="mailto:{contact.email}" class="hover:text-brass-600">{contact.email}</a></dd>
+					<dd class="mt-2">
+						<a href="mailto:{contact.email}" class="hover:text-brass-600">{contact.email}</a>
+					</dd>
 				</div>
 			</dl>
 
@@ -77,7 +89,7 @@
 						class="peer w-full border-0 border-b border-ink-900/20 bg-transparent px-0 py-3 text-lg text-ink-900 focus:border-brass-500 focus:ring-0 focus-visible:outline-none"
 					/>
 					<span
-						class="pointer-events-none absolute top-9 left-0 text-stone-muted transition-all duration-300 peer-focus:top-0 peer-focus:text-xs peer-focus:tracking-widest peer-focus:text-brass-600 peer-focus:uppercase peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:tracking-widest peer-not-placeholder-shown:uppercase"
+						class="pointer-events-none absolute top-9 left-0 text-stone-muted transition-all duration-300 peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:tracking-widest peer-not-placeholder-shown:uppercase peer-focus:top-0 peer-focus:text-xs peer-focus:tracking-widest peer-focus:text-brass-600 peer-focus:uppercase"
 						>{f.label}{f.required ? '' : ' (optional)'}</span
 					>
 				</label>
@@ -91,7 +103,7 @@
 					class="peer w-full resize-none border-0 border-b border-ink-900/20 bg-transparent px-0 py-3 text-lg text-ink-900 focus:border-brass-500 focus:ring-0 focus-visible:outline-none"
 				></textarea>
 				<span
-					class="pointer-events-none absolute top-9 left-0 text-stone-muted transition-all duration-300 peer-focus:top-0 peer-focus:text-xs peer-focus:tracking-widest peer-focus:text-brass-600 peer-focus:uppercase peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:tracking-widest peer-not-placeholder-shown:uppercase"
+					class="pointer-events-none absolute top-9 left-0 text-stone-muted transition-all duration-300 peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:tracking-widest peer-not-placeholder-shown:uppercase peer-focus:top-0 peer-focus:text-xs peer-focus:tracking-widest peer-focus:text-brass-600 peer-focus:uppercase"
 					>Your message</span
 				>
 			</label>
@@ -105,7 +117,8 @@
 				</button>
 				<p aria-live="polite" class="text-sm">
 					{#if form?.ok}
-						<span class="text-brass-600">Thank you — the secretariat will be in touch shortly.</span>
+						<span class="text-brass-600">Thank you — the secretariat will be in touch shortly.</span
+						>
 					{:else if form?.error}
 						<span class="text-laterite-500">{form.error}</span>
 					{/if}

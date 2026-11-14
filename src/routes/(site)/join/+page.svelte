@@ -2,7 +2,8 @@
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import type { HTMLInputAttributes } from 'svelte/elements';
-	import { brand } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	const brand = $derived(activeForum().brand);
 	import IndustryField from '#lib/components/IndustryField.svelte';
 	import { shrinkImageInput } from '#lib/image.ts';
 	import PaymentPanel from '#lib/components/PaymentPanel.svelte';

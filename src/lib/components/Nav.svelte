@@ -1,22 +1,28 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { nav, brand } from '#lib/content.ts';
 	import { magnetic, getLenis } from '#lib/motion.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	import ForumSwitcher from './ForumSwitcher.svelte';
+
+	const forum = $derived(activeForum());
+	const nav = $derived([
+		{ label: 'Story', href: '/#story' },
+		{ label: `Why ${forum.brand.short}`, href: '/#why' },
+		{ label: 'Membership', href: '/#membership' },
+		{ label: 'Events', href: '/events' },
+		{ label: 'Contact', href: '/#contact' }
+	]);
 
 	let dark = $state(true);
-	let hidden = $state(false);
 	let open = $state(false);
 
 	onMount(() => {
-		let lastY = window.scrollY;
+		// The header stays put (the forum switcher lives in it); only its tone follows the page.
 		const onScroll = () => {
-			const y = window.scrollY;
-			hidden = y > lastY && y > 400 && !open;
-			lastY = y;
 			// Sections declare their tone with data-nav="dark" | "light".
 			const under = document
 				.elementsFromPoint(window.innerWidth / 2, 40)
-				.find((el) => !el.closest('header'))
+				.find((el) => !el.closest('header') && el.closest('[data-nav]'))
 				?.closest('[data-nav]');
 			dark = (under?.getAttribute('data-nav') ?? 'light') === 'dark';
 		};
@@ -34,23 +40,15 @@
 </script>
 
 <header
-	class="fixed inset-x-0 top-0 z-50 transition-[transform,background-color,color] duration-700 ease-out-expo
-		{hidden ? '-translate-y-full' : ''}
-		{open ? 'text-ivory-100' : dark ? 'text-ivory-100' : 'bg-ivory-100/75 text-ink-900 backdrop-blur-xl'}"
+	class="fixed inset-x-0 top-0 z-50 transition-[background-color,color] duration-700 ease-out-expo
+		{open
+		? 'text-ivory-100'
+		: dark
+			? 'text-ivory-100'
+			: 'bg-ivory-100/75 text-ink-900 backdrop-blur-xl'}"
 >
 	<div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 sm:px-10">
-		<a href="/" class="relative z-10 block h-9 w-28" aria-label="{brand.name} — home">
-			<img
-				src="/brand/logo-light.png"
-				alt=""
-				class="absolute inset-0 h-full w-full object-contain object-left transition-opacity duration-500 {dark || open ? 'opacity-100' : 'opacity-0'}"
-			/>
-			<img
-				src="/brand/logo-ink.png"
-				alt=""
-				class="absolute inset-0 h-full w-full object-contain object-left transition-opacity duration-500 {dark || open ? 'opacity-0' : 'opacity-100'}"
-			/>
-		</a>
+		<ForumSwitcher tone={dark || open ? 'light' : 'ink'} />
 
 		<nav class="hidden items-center gap-9 lg:flex" aria-label="Primary">
 			{#each nav as item (item.href)}
@@ -87,10 +85,14 @@
 			>
 				<span class="relative block h-3 w-6">
 					<span
-						class="absolute inset-x-0 top-0 h-px bg-current transition-transform duration-500 {open ? 'translate-y-1.5 rotate-45' : ''}"
+						class="absolute inset-x-0 top-0 h-px bg-current transition-transform duration-500 {open
+							? 'translate-y-1.5 rotate-45'
+							: ''}"
 					></span>
 					<span
-						class="absolute inset-x-0 bottom-0 h-px bg-current transition-transform duration-500 {open ? '-translate-y-1.5 -rotate-45' : ''}"
+						class="absolute inset-x-0 bottom-0 h-px bg-current transition-transform duration-500 {open
+							? '-translate-y-1.5 -rotate-45'
+							: ''}"
 					></span>
 				</span>
 			</button>
@@ -110,17 +112,21 @@
 				href={item.href}
 				onclick={toggle}
 				class="display text-5xl transition-[opacity,transform] duration-700 ease-out-expo"
-				style="transition-delay:{open ? 150 + i * 60 : 0}ms; opacity:{open ? 1 : 0}; transform:translateY({open ? 0 : 24}px)"
-				>{item.label}</a
+				style="transition-delay:{open ? 150 + i * 60 : 0}ms; opacity:{open
+					? 1
+					: 0}; transform:translateY({open ? 0 : 24}px)">{item.label}</a
 			>
 		{/each}
 	</nav>
 	<div class="hairline my-10"></div>
 	<div class="flex gap-3">
-		<a href="/join" class="flex-1 rounded-full bg-brass-400 py-4 text-center font-semibold text-ink-950"
-			>Apply</a
+		<a
+			href="/join"
+			class="flex-1 rounded-full bg-brass-400 py-4 text-center font-semibold text-ink-950">Apply</a
 		>
-		<a href="/login" class="flex-1 rounded-full border border-ivory-100/30 py-4 text-center font-semibold"
+		<a
+			href="/login"
+			class="flex-1 rounded-full border border-ivory-100/30 py-4 text-center font-semibold"
 			>Member login</a
 		>
 	</div>

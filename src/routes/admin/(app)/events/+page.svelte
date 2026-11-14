@@ -3,6 +3,7 @@
 	import type { PageProps } from './$types';
 	import { coverUrl, eventShortDate, eventTime, isPast } from '#lib/events.ts';
 	import CoverImage from '#lib/components/CoverImage.svelte';
+	import ForumBadge from '#lib/components/admin/ForumBadge.svelte';
 
 	let { data, form }: PageProps = $props();
 	let confirming = $state<number | null>(null);
@@ -47,6 +48,7 @@
 					<p class="flex flex-wrap items-center gap-2">
 						<a href="/admin/events/{e.id}" class="font-medium hover:text-brass-600">{e.title}</a>
 						<span class="rounded-full px-2 py-0.5 text-[0.7rem] font-semibold {badge[s]}">{s}</span>
+						<ForumBadge forum={e.forum} />
 					</p>
 					<p class="mt-1 text-sm text-stone-muted">
 						{eventShortDate(e.startsAt)}, {eventTime(e.startsAt)} · {e.venue} · {e.category}

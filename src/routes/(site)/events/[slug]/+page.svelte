@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import { page } from '$app/state';
-	import { brand } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	const brand = $derived(activeForum().brand);
 	import {
 		coverUrl,
 		eventDate,

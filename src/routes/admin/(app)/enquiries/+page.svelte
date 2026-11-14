@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import { eventShortDate, eventTime } from '#lib/events.ts';
+	import ForumBadge from '#lib/components/admin/ForumBadge.svelte';
 
 	let { data }: PageProps = $props();
 	let confirming = $state<number | null>(null);
@@ -43,6 +44,7 @@
 							{m.name}{#if m.business}<span class="font-normal text-stone-muted">
 									· {m.business}</span
 								>{/if}
+							<ForumBadge forum={m.forum} />
 						</p>
 						<p class="mt-1 text-sm text-stone-muted">
 							{eventShortDate(m.createdAt)}, {eventTime(m.createdAt)}
