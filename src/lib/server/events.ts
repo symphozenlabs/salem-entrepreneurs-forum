@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
-import { DEFAULT_FORUM, isForumId, type ForumId } from '#lib/forums.ts';
+import { DEFAULT_FORUM, STATE_FORUM, isForumId, type ForumId } from '#lib/forums.ts';
 import { db } from '#lib/server/db/index.ts';
 import { event, eventCover, eventRegistration } from '#lib/server/db/schema.ts';
 import { categories, fromLocalInput, registrationModes, type PublicEvent } from '#lib/events.ts';
@@ -37,8 +37,12 @@ const columns = {
 const withCover = () =>
 	db.select(columns).from(event).leftJoin(eventCover, eq(eventCover.eventId, event.id));
 
-/** Events listed on a forum's site: its own and those marked for all forums. */
-const onForum = (forum?: ForumId) => (forum ? inArray(event.forum, [forum, 'all']) : undefined);
+/**
+ * Events listed on a forum's site. Tamil Nadu is the state-wide forum, so it lists every
+ * event; a city forum lists its own events and those marked for all forums.
+ */
+const onForum = (forum?: ForumId) =>
+	!forum || forum === STATE_FORUM ? undefined : inArray(event.forum, [forum, 'all']);
 
 export async function upcomingEvents(limit = 50, forum?: ForumId): Promise<PublicEvent[]> {
 	return withCover()

@@ -41,8 +41,10 @@ admin and payments are shared; each forum has its own landing page and event lis
   works on one address and the cookie decides.
 - **With a custom domain:** add the three subdomains (and the bare domain) to the Vercel project,
   set `FORUM_BASE_DOMAIN`, and sign-in works across all three.
-- **Events** belong to one forum or to all three (chosen in the event form). Enquiries and
-  applications record the forum they came through (shown as a badge in the admin).
+- **Events** belong to one forum or to all three (chosen in the event form). Tamil Nadu is the
+  state-wide forum and lists every event; Salem and Coimbatore list their own events plus those
+  marked for all three. Enquiries and applications record the forum they came through (shown as
+  a badge in the admin).
 - Test locally with `?forum=…`, or set `FORUM_BASE_DOMAIN="localhost"` and open
   `http://coimbatore.localhost:5173`.
 
