@@ -1,7 +1,12 @@
 import { defineEnvVars } from '@sveltejs/kit/env';
 
 export const variables = defineEnvVars({
-	DATABASE_URL: { description: 'The database connection string.' },
+	// Optional so a build without a database (e.g. Vercel Preview) still succeeds: public pages
+	// render without it, and the admin and member areas answer 503 (see hooks.server.ts).
+	DATABASE_URL: {
+		description: 'The database connection string.',
+		schema: (value) => value ?? ''
+	},
 	ORIGIN: {
 		description: 'The app origin (base URL), e.g. `http://localhost:5173`.'
 	},
