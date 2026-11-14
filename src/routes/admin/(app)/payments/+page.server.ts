@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import {
@@ -58,6 +59,10 @@ export const load: PageServerLoad = async ({ url }) => {
 			applicationId: payment.applicationId,
 			eventId: event.id,
 			eventTitle: event.title,
+			/** The regular fee, to show when a member paid the lower member price. */
+			eventFee: event.fee,
+			/** Paid by a signed-in member (event registrations from the member portal or site). */
+			isMember: sql<boolean>`${memberProfile.userId} is not null`,
 			registrationCode: eventRegistration.code,
 			hasProof: sql<boolean>`${paymentProof.paymentId} is not null`
 		})
@@ -77,7 +82,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			)
 		)
 		.orderBy(show === 'pending' ? payment.createdAt : desc(payment.createdAt))
-		.limit(300);
+		.limit(5000);
 	const [[pending], events] = await Promise.all([
 		// Waiting counts for the Events / Memberships switch.
 		db
@@ -95,7 +100,27 @@ export const load: PageServerLoad = async ({ url }) => {
 			.innerJoin(event, eq(event.id, eventRegistration.eventId))
 			.orderBy(desc(event.startsAt))
 	]);
-	return { payments, show, q, kind, eventFilter, pending, events };
+	const ofEvent = payments.filter((p) => p.purpose === 'event');
+	const ofMembership = payments.filter((p) => p.purpose !== 'event');
+	const totalOf = (list: typeof payments) => ({
+		count: list.length,
+		amount: list.reduce((s, p) => s + p.amount, 0)
+	});
+	const paged =
+		kind === 'all' ? null : paginate(kind === 'events' ? ofEvent : ofMembership, url, 20);
+	return {
+		eventPayments: kind === 'all' ? ofEvent.slice(0, 10) : kind === 'events' ? paged!.items : [],
+		membershipPayments:
+			kind === 'all' ? ofMembership.slice(0, 10) : kind === 'membership' ? paged!.items : [],
+		totals: { event: totalOf(ofEvent), membership: totalOf(ofMembership) },
+		pager: paged?.pager ?? null,
+		show,
+		q,
+		kind,
+		eventFilter,
+		pending,
+		events
+	};
 };
 
 /** What a payment is for, so a decision goes to the right place. */

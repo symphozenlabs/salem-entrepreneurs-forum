@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { eventById } from '#lib/server/events.ts';
 import {
@@ -27,7 +28,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	return {
 		event: ev,
 		show,
-		registrations: show === 'all' ? all : all.filter((r) => r.status === show),
+		...(({ items, pager }) => ({ registrations: items, pager }))(
+			paginate(show === 'all' ? all : all.filter((r) => r.status === show), url, 25)
+		),
 		counts: {
 			pending: count('pending'),
 			confirmed: count('confirmed'),

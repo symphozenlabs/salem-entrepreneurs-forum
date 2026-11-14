@@ -1,15 +1,19 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { scrollIntoViewTop } from '#lib/motion.ts';
 	import type { PageProps } from './$types';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { brand } from '#lib/content.ts';
 	import IndustryField from '#lib/components/IndustryField.svelte';
 	import { shrinkImageInput } from '#lib/image.ts';
 	import PaymentPanel from '#lib/components/PaymentPanel.svelte';
+	import { hubs } from '#lib/network.ts';
 
 	let { data, form }: PageProps = $props();
 	let busy = $state(false);
 	let proofNote = $state('');
+	let section: HTMLElement;
 
 	const values = $derived((form?.values ?? {}) as Record<string, string>);
 	const errors = $derived((form?.errors ?? {}) as Record<string, string>);
@@ -75,7 +79,7 @@
 	</div>
 </section>
 
-<section data-nav="light" class="bg-ivory-50 py-20 sm:py-28">
+<section bind:this={section} data-nav="light" class="bg-ivory-50 py-20 sm:py-28">
 	<div class="mx-auto grid max-w-7xl gap-14 px-6 sm:px-10 lg:grid-cols-[7fr_4fr]">
 		{#if form?.ok}
 			<div class="lg:col-span-2">
@@ -98,9 +102,16 @@
 				enctype="multipart/form-data"
 				use:enhance={() => {
 					busy = true;
-					return async ({ update }) => {
+					return async ({ result, update }) => {
 						await update({ reset: false });
 						busy = false;
+						// Show the thank-you (or the first problem) instead of where the button was.
+						await tick();
+						if (result.type === 'success') scrollIntoViewTop(section);
+						else
+							section
+								.querySelector('.field-error, [role=alert]')
+								?.scrollIntoView({ block: 'center' });
 					};
 				}}
 				class="order-2 grid content-start gap-x-8 gap-y-6 sm:grid-cols-2 lg:order-1"
@@ -125,6 +136,27 @@
 							</p>{/if}
 					</label>
 				{/each}
+				<fieldset class="sm:col-span-2">
+					<legend class="field-label">Your hub *</legend>
+					<div class="mt-2 grid grid-cols-2 gap-3 sm:max-w-md">
+						{#each hubs as h (h)}
+							<label
+								class="flex cursor-pointer items-center gap-3 rounded-md border border-ink-900/15 bg-white px-4 py-3 text-sm has-[:checked]:border-brass-500 has-[:checked]:bg-brass-200/30"
+							>
+								<input
+									type="radio"
+									name="hub"
+									value={h}
+									required
+									checked={values.hub === h}
+									class="text-ink-900"
+								/>
+								{h}
+							</label>
+						{/each}
+					</div>
+					{#if errors.hub}<p class="field-error">{errors.hub}</p>{/if}
+				</fieldset>
 				<div class="sm:col-span-2">
 					<IndustryField value={values.industry} error={errors.industry} />
 				</div>

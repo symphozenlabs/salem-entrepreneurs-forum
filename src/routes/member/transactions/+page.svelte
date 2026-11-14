@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Pagination from '#lib/components/Pagination.svelte';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import { rupees } from '#lib/content.ts';
@@ -15,19 +16,9 @@
 	let declining = $state<number | null>(null);
 
 	const values = $derived(form?.record && 'values' in form.record ? form.record.values : undefined);
-	const awaiting = $derived(data.transactions.filter((t) => t.awaitingMe));
-	const rest = $derived(data.transactions.filter((t) => !t.awaitingMe));
-	const totals = $derived(
-		data.transactions
-			.filter((t) => t.status === 'confirmed')
-			.reduce(
-				(a, t) =>
-					t.direction === 'received'
-						? { ...a, received: a.received + t.amount }
-						: { ...a, given: a.given + t.amount },
-				{ received: 0, given: 0 }
-			)
-	);
+	const awaiting = $derived(data.awaiting);
+	const rest = $derived(data.history);
+	const totals = $derived(data.totals);
 	const autoDate = (d: Date) =>
 		eventShortDate(new Date(d.getTime() + AUTO_CONFIRM_DAYS * 86_400_000));
 	const badge: Record<string, string> = {
@@ -280,6 +271,7 @@
 				</tbody>
 			</table>
 		</div>
+		<Pagination pager={data.pager} />
 	{:else if !awaiting.length}
 		<p
 			class="mt-6 rounded-lg border border-dashed border-ink-900/20 bg-white px-6 py-12 text-center text-sm text-stone-muted"

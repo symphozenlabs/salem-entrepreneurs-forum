@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { desc, eq, sql } from 'drizzle-orm';
+import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { membershipApplication, payment, paymentProof } from '#lib/server/db/schema.ts';
@@ -26,8 +27,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		.orderBy(
 			show === 'pending' ? membershipApplication.createdAt : desc(membershipApplication.createdAt)
 		)
-		.limit(200);
-	return { applications, show };
+		.limit(5000);
+	const { items, pager } = paginate(applications, url, 20);
+	return { applications: items, pager, show };
 };
 
 export const actions: Actions = {

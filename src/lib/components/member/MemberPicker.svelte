@@ -1,120 +1,77 @@
 <script lang="ts">
-	import type { MemberOption } from '#lib/network.ts';
+	import { untrack } from 'svelte';
+	import { hubs, type MemberOption } from '#lib/network.ts';
 
 	type Props = {
 		options: MemberOption[];
 		name: string;
 		selected?: string;
 		label?: string;
-		onchange?: (id: string) => void;
 	};
-	let { options, name, selected = '', label = 'Member', onchange }: Props = $props();
+	let { options, name, selected = '', label = 'Member' }: Props = $props();
 
-	// The chosen member is the picker's own state once it's mounted.
-	let chosen = $state<MemberOption | undefined>(undefined);
-	let query = $state('');
-	let open = $state(false);
-	let active = $state(0);
+	// Narrow by hub and category, then choose from a plain list of names — no spelling needed.
+	let memberId = $state(untrack(() => selected));
+	/** '' = every hub / every category. */
+	let hub = $state('');
+	let category = $state('');
 
-	$effect.pre(() => {
-		if (chosen === undefined && selected) chosen = options.find((o) => o.id === selected);
+	const inHub = $derived(hub ? options.filter((o) => o.hub === hub) : options);
+	const categories = $derived([...new Set(inHub.map((o) => o.industry))].sort());
+	const list = $derived(category ? inHub.filter((o) => o.industry === category) : inHub);
+	const chosen = $derived(options.find((o) => o.id === memberId));
+
+	// A member hidden by a narrower filter is no longer the choice.
+	$effect(() => {
+		if (memberId && !list.some((o) => o.id === memberId)) memberId = '';
 	});
-
-	const matches = $derived.by(() => {
-		const q = query.trim().toLowerCase();
-		const list = q
-			? options.filter((o) => `${o.name} ${o.business} ${o.industry}`.toLowerCase().includes(q))
-			: options;
-		return list.slice(0, 8);
-	});
-
-	function pick(o: MemberOption) {
-		chosen = o;
-		query = '';
-		open = false;
-		onchange?.(o.id);
-	}
-
-	function keydown(e: KeyboardEvent) {
-		if (e.key === 'ArrowDown') {
-			e.preventDefault();
-			open = true;
-			active = Math.min(active + 1, matches.length - 1);
-		} else if (e.key === 'ArrowUp') {
-			e.preventDefault();
-			active = Math.max(active - 1, 0);
-		} else if (e.key === 'Enter' && open && matches[active]) {
-			e.preventDefault();
-			pick(matches[active]);
-		} else if (e.key === 'Escape') {
-			open = false;
-		}
-	}
 </script>
 
-<div class="relative">
+<div>
 	<span class="field-label">{label} *</span>
-	<input type="hidden" {name} value={chosen?.id ?? ''} />
-	{#if chosen}
-		<div
-			class="mt-1.5 flex items-center justify-between gap-3 rounded-md border border-brass-400 bg-white px-3 py-2.5 text-sm"
-		>
-			<span class="min-w-0 truncate">
-				<strong>{chosen.name}</strong>
-				<span class="text-stone-muted"> · {chosen.business} · {chosen.industry}</span>
-			</span>
+	<div class="mt-1.5 flex flex-wrap gap-1.5" role="group" aria-label="Hub">
+		{#each ['', ...hubs] as h (h)}
 			<button
 				type="button"
 				onclick={() => {
-					chosen = undefined;
-					onchange?.('');
+					hub = h;
+					if (category && !inHub.some((o) => o.industry === category)) category = '';
 				}}
-				class="shrink-0 text-xs font-semibold text-brass-600">Change</button
+				aria-pressed={hub === h}
+				class="rounded-full px-3 py-1 text-xs font-semibold transition-colors {hub === h
+					? 'bg-ink-900 text-ivory-50'
+					: 'bg-ivory-100 text-ink-700 hover:bg-ivory-200'}">{h || 'All hubs'}</button
 			>
-		</div>
-	{:else}
-		<input
-			type="search"
-			role="combobox"
-			aria-expanded={open}
-			aria-controls="{name}-list"
-			aria-autocomplete="list"
-			autocomplete="off"
-			placeholder="Search by name, business or industry"
-			bind:value={query}
-			onfocus={() => (open = true)}
-			oninput={() => {
-				open = true;
-				active = 0;
-			}}
-			onblur={() => setTimeout(() => (open = false), 150)}
-			onkeydown={keydown}
-			class="field-input"
-		/>
-		{#if open}
-			<ul
-				id="{name}-list"
-				role="listbox"
-				class="absolute inset-x-0 z-20 mt-1 max-h-72 overflow-auto rounded-md border border-ink-900/10 bg-white py-1 shadow-lg"
-			>
-				{#each matches as o, i (o.id)}
-					<li role="option" aria-selected={i === active}>
-						<button
-							type="button"
-							onmousedown={(e) => e.preventDefault()}
-							onclick={() => pick(o)}
-							class="block w-full px-3 py-2 text-left text-sm {i === active
-								? 'bg-ivory-100'
-								: 'hover:bg-ivory-50'}"
-						>
-							<span class="font-medium">{o.name}</span>
-							<span class="block text-xs text-stone-muted">{o.business} · {o.industry}</span>
-						</button>
-					</li>
-				{:else}
-					<li class="px-3 py-3 text-sm text-stone-muted">No member matches “{query}”.</li>
+		{/each}
+	</div>
+
+	<div class="mt-3 grid gap-3 sm:grid-cols-[2fr_3fr]">
+		<label class="block">
+			<span class="text-xs font-semibold text-stone-muted">Category</span>
+			<select bind:value={category} class="field-input !mt-1">
+				<option value="">All categories ({inHub.length})</option>
+				{#each categories as c (c)}
+					<option value={c}>{c} ({inHub.filter((o) => o.industry === c).length})</option>
 				{/each}
-			</ul>
-		{/if}
+			</select>
+		</label>
+		<label class="block">
+			<span class="text-xs font-semibold text-stone-muted">Member</span>
+			<select {name} required bind:value={memberId} class="field-input !mt-1">
+				<option value="" disabled>
+					{list.length
+						? `Choose from ${list.length} member${list.length === 1 ? '' : 's'}`
+						: 'No members here'}
+				</option>
+				{#each list as o (o.id)}
+					<option value={o.id}>{o.name} — {o.business}</option>
+				{/each}
+			</select>
+		</label>
+	</div>
+	{#if chosen}
+		<p class="mt-2 text-xs text-stone-muted">
+			{chosen.name} · {chosen.business} · {chosen.industry} · {chosen.hub} hub
+		</p>
 	{/if}
 </div>

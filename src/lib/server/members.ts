@@ -135,6 +135,7 @@ export async function approveApplication(id: number, adminId: string) {
 					city: app.city,
 					website: app.website,
 					about: app.about,
+					hub: app.hub,
 					joinedAt: now,
 					expiresAt: addMonths(now, periodMonths(period))
 				});

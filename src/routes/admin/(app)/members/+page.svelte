@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Pagination from '#lib/components/Pagination.svelte';
+	import { hubs } from '#lib/network.ts';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import { eventShortDate } from '#lib/events.ts';
@@ -45,6 +47,7 @@
 			<thead class="border-b border-ink-900/10 text-xs tracking-wide text-stone-muted uppercase">
 				<tr>
 					<th class="px-4 py-3 font-semibold">Member</th>
+					<th class="px-4 py-3 font-semibold">Hub</th>
 					<th class="px-4 py-3 font-semibold">Business</th>
 					<th class="px-4 py-3 font-semibold">Contact</th>
 					<th class="px-4 py-3 font-semibold">Membership</th>
@@ -60,6 +63,19 @@
 							<p class="text-xs text-stone-muted">
 								{m.memberNumber}{m.mustChangePassword ? ' · still on temporary password' : ''}
 							</p>
+						</td>
+						<td class="px-4 py-4">
+							<form method="POST" action="?/hub" use:enhance>
+								<input type="hidden" name="id" value={m.id} />
+								<select
+									name="hub"
+									aria-label="Hub for {m.name}"
+									onchange={(e) => e.currentTarget.form?.requestSubmit()}
+									class="rounded-md border-ink-900/15 py-1.5 pr-8 text-sm"
+								>
+									{#each hubs as h (h)}<option selected={m.hub === h}>{h}</option>{/each}
+								</select>
+							</form>
 						</td>
 						<td class="px-4 py-4"
 							>{m.business}<span class="block text-xs text-stone-muted">{m.industry}</span></td
@@ -115,6 +131,7 @@
 			</tbody>
 		</table>
 	</div>
+	<Pagination pager={data.pager} />
 {:else}
 	<p
 		class="mt-6 rounded-lg border border-dashed border-ink-900/20 bg-white px-6 py-12 text-center text-sm text-stone-muted"

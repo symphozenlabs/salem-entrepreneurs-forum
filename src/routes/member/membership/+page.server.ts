@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { payment, paymentProof } from '#lib/server/db/schema.ts';
@@ -21,7 +21,8 @@ const myPayments = (userId: string) =>
 			createdAt: payment.createdAt
 		})
 		.from(payment)
-		.where(eq(payment.userId, userId))
+		// Event payments are listed on the Events page.
+		.where(and(eq(payment.userId, userId), inArray(payment.purpose, ['joining', 'renewal'])))
 		.orderBy(desc(payment.createdAt));
 
 export const load: PageServerLoad = async ({ locals, parent }) => {

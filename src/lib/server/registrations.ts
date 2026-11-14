@@ -172,6 +172,31 @@ export async function register(
 	return { code, confirmed: free };
 }
 
+/** A member's own event registrations, newest first, with the event and payment. */
+export async function registrationsOf(userId: string) {
+	return db
+		.select({
+			id: eventRegistration.id,
+			code: eventRegistration.code,
+			amount: eventRegistration.amount,
+			status: eventRegistration.status,
+			note: eventRegistration.note,
+			createdAt: eventRegistration.createdAt,
+			eventId: event.id,
+			slug: event.slug,
+			title: event.title,
+			startsAt: event.startsAt,
+			endsAt: event.endsAt,
+			venue: event.venue,
+			utr: payment.utr
+		})
+		.from(eventRegistration)
+		.innerJoin(event, eq(event.id, eventRegistration.eventId))
+		.leftJoin(payment, eq(payment.registrationId, eventRegistration.id))
+		.where(eq(eventRegistration.userId, userId))
+		.orderBy(desc(eventRegistration.createdAt));
+}
+
 /** Registrations for one event, with the payment details the admin checks. */
 export async function registrationsFor(eventId: number, status?: string) {
 	return db

@@ -1,6 +1,11 @@
 // Labels and rules for member connects and business transactions, shared by
 // the member area and the admin.
 
+/** The forum's chapters. Every member belongs to one. */
+export const hubs = ['Salem', 'Coimbatore'] as const;
+export type Hub = (typeof hubs)[number];
+export const isHub = (v: unknown): v is Hub => hubs.includes(v as Hub);
+
 export const connectKinds = {
 	self: { label: 'For myself', hint: 'You need their product or service' },
 	referral: { label: 'Referral', hint: 'Someone you know needs it — share their contact' }
@@ -38,6 +43,7 @@ export type MemberOption = {
 	name: string;
 	business: string;
 	industry: string;
+	hub: string;
 };
 
 export const photoUrl = (m: { id: string; photoVersion: number | null }) =>

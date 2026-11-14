@@ -31,6 +31,23 @@ export function startSmoothScroll() {
 export const getLenis = () => lenis;
 
 /**
+ * Scrolls so `el` sits just below the nav — used when a long form is swapped for a short
+ * "Thank you", which would otherwise leave the visitor looking at the footer.
+ */
+export function scrollIntoViewTop(el: Element | null | undefined) {
+	if (!el) return;
+	// Measured after the swap, once the browser has laid the shorter page out.
+	requestAnimationFrame(() => {
+		const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 120);
+		if (lenis) {
+			lenis.resize();
+			lenis.scrollTo(top, { immediate: true, force: true });
+		}
+		window.scrollTo({ top, behavior: 'auto' });
+	});
+}
+
+/**
  * Splits an element's text into masked words that rise into place when scrolled into view.
  * Usage: <h2 use:reveal>…</h2>  or  use:reveal={{ delay: 0.2 }}
  */
@@ -60,7 +77,10 @@ export function reveal(node: HTMLElement, opts: { delay?: number; stagger?: numb
 }
 
 /** Fades and lifts an element (or its direct children, staggered) into view. */
-export function rise(node: HTMLElement, opts: { children?: boolean; y?: number; delay?: number } = {}) {
+export function rise(
+	node: HTMLElement,
+	opts: { children?: boolean; y?: number; delay?: number } = {}
+) {
 	if (prefersReducedMotion()) return;
 	const targets = opts.children ? Array.from(node.children) : node;
 	const tween = gsap.from(targets, {

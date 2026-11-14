@@ -1,9 +1,11 @@
 import { fail } from '@sveltejs/kit';
 import { and, asc, eq, ilike, or } from 'drizzle-orm';
+import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { memberProfile, user } from '#lib/server/db/schema.ts';
 import { resetMemberPassword } from '#lib/server/members.ts';
+import { isHub } from '#lib/network.ts';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const q = (url.searchParams.get('q') ?? '').trim().slice(0, 80);
@@ -18,6 +20,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			memberNumber: memberProfile.memberNumber,
 			business: memberProfile.business,
 			industry: memberProfile.industry,
+			hub: memberProfile.hub,
 			joinedAt: memberProfile.joinedAt,
 			expiresAt: memberProfile.expiresAt
 		})
@@ -38,11 +41,23 @@ export const load: PageServerLoad = async ({ url }) => {
 			)
 		)
 		.orderBy(asc(user.name))
-		.limit(500);
-	return { members, q };
+		.limit(5000);
+	const { items, pager } = paginate(members, url, 25);
+	return { members: items, pager, q };
 };
 
 export const actions: Actions = {
+	hub: async ({ request }) => {
+		const data = await request.formData();
+		const hub = String(data.get('hub') ?? '');
+		if (!isHub(hub)) return fail(400, { error: 'Choose Salem or Coimbatore.' });
+		const updated = await db
+			.update(memberProfile)
+			.set({ hub })
+			.where(eq(memberProfile.userId, String(data.get('id') ?? '')))
+			.returning({ id: memberProfile.userId });
+		if (!updated.length) return fail(404, { error: 'That member no longer exists.' });
+	},
 	reset: async ({ request }) => {
 		const id = String((await request.formData()).get('id') ?? '');
 		const result = await resetMemberPassword(id);

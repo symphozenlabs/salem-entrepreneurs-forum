@@ -2,6 +2,7 @@
 	import './layout.css';
 	import type { LayoutProps } from './$types';
 	import { brand } from '#lib/content.ts';
+	import NavLoader from '#lib/components/NavLoader.svelte';
 
 	let { children }: LayoutProps = $props();
 </script>
@@ -15,4 +16,5 @@
 	<link rel="icon" href="/brand/favicon.png" />
 </svelte:head>
 
+<NavLoader />
 {@render children()}

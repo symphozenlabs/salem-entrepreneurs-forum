@@ -8,8 +8,10 @@ const safeNext = (next: string | null) =>
 	next && /^\/(member(\/|\?|$)|events\/[a-z0-9-]+\/register$)/.test(next) ? next : '/member';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	if (locals.user?.role === 'admin') redirect(303, '/admin');
+	// An admin signed in on this browser still gets the member login (with a note), so the
+	// "Member login" link never lands them in the admin area.
 	if (locals.user?.role === 'member') redirect(303, safeNext(url.searchParams.get('next')));
+	return { signedInAdmin: locals.user?.role === 'admin' ? locals.user.email : null };
 };
 
 export const actions: Actions = {

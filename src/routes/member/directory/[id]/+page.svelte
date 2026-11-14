@@ -32,7 +32,7 @@
 					<h1 class="display text-4xl">{m.name}</h1>
 					<p class="mt-1 text-ink-700">{m.designation ? `${m.designation}, ` : ''}{m.business}</p>
 					<p class="text-sm text-stone-muted">
-						{m.industry}{m.city ? ` · ${m.city}` : ''} · {m.memberNumber}
+						{m.hub} hub · {m.industry}{m.city ? ` · ${m.city}` : ''} · {m.memberNumber}
 					</p>
 				</div>
 			</div>
@@ -64,6 +64,17 @@
 		<aside class="h-fit space-y-4 rounded-lg border border-ink-900/10 bg-white p-5">
 			<p class="text-sm"><span class="text-stone-muted">Phone</span><br />{m.phone}</p>
 			<p class="text-sm"><span class="text-stone-muted">Email</span><br />{m.email}</p>
+			{#if m.address || m.mapUrl}
+				<p class="text-sm">
+					<span class="text-stone-muted">Address</span><br />{m.address ?? ''}
+					{#if m.mapUrl}<a
+							href={m.mapUrl}
+							target="_blank"
+							rel="noopener"
+							class="block font-semibold text-brass-600 hover:underline">Open in Maps →</a
+						>{/if}
+				</p>
+			{/if}
 			<ContactButtons phone={m.phone} email={m.email} />
 			<a href="/member/connects?view=give&to={m.id}" class="btn-primary w-full">Give a connect</a>
 			<a href="/member/transactions?view=record&with={m.id}" class="btn-quiet w-full"

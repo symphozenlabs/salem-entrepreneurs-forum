@@ -4,6 +4,7 @@
 	import {
 		ArrowLeftRight,
 		BadgeCheck,
+		CalendarDays,
 		Handshake,
 		Home,
 		Menu,
@@ -23,6 +24,7 @@
 		{ href: '/member/connects', label: 'Connects', icon: Handshake },
 		{ href: '/member/transactions', label: 'Transactions', icon: ArrowLeftRight },
 		{ href: '/member/directory', label: 'Directory', icon: Users },
+		{ href: '/member/events', label: 'Events', icon: CalendarDays },
 		{ href: '/member/profile', label: 'My profile', icon: UserRound },
 		{ href: '/member/membership', label: 'Membership', icon: BadgeCheck }
 	];
@@ -99,6 +101,12 @@
 							<span
 								class="rounded-full bg-brass-400 px-2 py-0.5 text-[0.7rem] font-semibold text-ink-950"
 								>{data.awaitingMe}</span
+							>
+						{/if}
+						{#if l.href === '/member/events' && data.openEvents}
+							<span
+								class="rounded-full bg-brass-400 px-2 py-0.5 text-[0.7rem] font-semibold text-ink-950"
+								title="Open for registration">{data.openEvents}</span
 							>
 						{/if}
 						{#if l.href === '/member/membership' && data.status.state !== 'active'}

@@ -17,7 +17,9 @@ const FIELDS = [
 	'website',
 	'about',
 	'offerings',
-	'lookingFor'
+	'lookingFor',
+	'address',
+	'mapUrl'
 ] as const;
 
 export const actions: Actions = {
@@ -36,6 +38,9 @@ export const actions: Actions = {
 			errors.industry =
 				data.get('industry') === 'Other' ? 'Type your industry.' : 'Choose your industry.';
 		const website = safeUrl(v.website);
+		const mapUrl = safeUrl(v.mapUrl);
+		if (mapUrl === undefined) errors.mapUrl = 'Paste the full Google Maps link (https://…).';
+		if (v.address.length > 300) errors.address = 'Keep the address under 300 characters.';
 		if (website === undefined) errors.website = 'Enter a full link starting with https://';
 		for (const k of ['about', 'offerings', 'lookingFor'] as const)
 			if (v[k].length > 1500) errors[k] = 'Keep this under 1500 characters.';
@@ -57,6 +62,8 @@ export const actions: Actions = {
 				about: v.about || null,
 				offerings: v.offerings || null,
 				lookingFor: v.lookingFor || null,
+				address: v.address || null,
+				mapUrl: mapUrl ?? null,
 				showInDirectory: data.get('showInDirectory') === 'on'
 			})
 			.where(eq(memberProfile.userId, me));

@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	memberOptions,
@@ -14,9 +15,28 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const range = rangeFrom(url);
 	const view = url.searchParams.get('view') === 'record' ? 'record' : 'list';
 	const [options, transactions] = await Promise.all([memberOptions(me), myTransactions(me, range)]);
+	const awaiting = transactions.filter((t) => t.awaitingMe);
+	const { items, pager } = paginate(
+		transactions.filter((t) => !t.awaitingMe),
+		url,
+		20
+	);
+	// Confirmed business in the chosen dates, across every page.
+	const totals = transactions
+		.filter((t) => t.status === 'confirmed')
+		.reduce(
+			(a, t) =>
+				t.direction === 'received'
+					? { ...a, received: a.received + t.amount }
+					: { ...a, given: a.given + t.amount },
+			{ received: 0, given: 0 }
+		);
 	return {
 		options,
-		transactions,
+		awaiting,
+		history: items,
+		pager,
+		totals,
 		view,
 		with: url.searchParams.get('with') ?? '',
 		range: { from: range.fromValue, to: range.toValue }

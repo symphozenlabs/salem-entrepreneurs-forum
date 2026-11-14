@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { event, eventCover, eventRegistration } from '#lib/server/db/schema.ts';
 import { categories, fromLocalInput, registrationModes, type PublicEvent } from '#lib/events.ts';
@@ -47,6 +47,48 @@ export async function pastEvents(limit = 50): Promise<PublicEvent[]> {
 		.where(and(eq(event.published, true), lt(endOf, new Date())))
 		.orderBy(desc(event.startsAt))
 		.limit(limit);
+}
+
+/** Published events that take registrations through our form at a member price. */
+const forMembers = and(
+	eq(event.published, true),
+	eq(event.registration, 'form'),
+	isNotNull(event.memberFee)
+);
+
+/** Events shown in the member portal: member-priced, not yet started. */
+export async function memberEvents(): Promise<PublicEvent[]> {
+	return withCover()
+		.where(and(forMembers, gt(event.startsAt, new Date())))
+		.orderBy(asc(event.startsAt));
+}
+
+/** How many member events are open for registration that this member hasn't signed up for. */
+export async function openMemberEventCount(userId: string) {
+	const now = new Date();
+	const [row] = await db
+		.select({ n: sql<number>`count(*)::int` })
+		.from(event)
+		.where(
+			and(
+				forMembers,
+				gt(event.startsAt, now),
+				or(isNull(event.registrationClosesAt), gt(event.registrationClosesAt, now)),
+				sql`(${event.seats} is null or ${columns.taken} < ${event.seats})`,
+				sql`not exists (select 1 from ${eventRegistration} where ${eventRegistration.eventId} = ${event.id} and ${eventRegistration.userId} = ${userId} and ${eventRegistration.status} <> 'rejected')`
+			)
+		);
+	return row.n;
+}
+
+/** A member event by slug (see `memberEvents`), including ones that have started. */
+export async function memberEventBySlug(slug: string) {
+	const [row] = await db
+		.select({ ...columns, published: event.published, formFields: event.formFields })
+		.from(event)
+		.leftJoin(eventCover, eq(eventCover.eventId, event.id))
+		.where(and(forMembers, eq(event.slug, slug)));
+	return row;
 }
 
 /** A published event by slug; `drafts` also finds unpublished ones (admin preview). */

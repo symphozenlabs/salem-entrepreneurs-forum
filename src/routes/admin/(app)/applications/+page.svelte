@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Pagination from '#lib/components/Pagination.svelte';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import { rupees } from '#lib/content.ts';
@@ -69,7 +70,7 @@
 					<div>
 						<p class="text-lg font-semibold">{app.name}</p>
 						<p class="text-sm text-ink-700">
-							{app.designation ? `${app.designation}, ` : ''}{app.business} · {app.industry}{app.city
+							{app.hub} hub · {app.designation ? `${app.designation}, ` : ''}{app.business} · {app.industry}{app.city
 								? ` · ${app.city}`
 								: ''}
 						</p>
@@ -164,6 +165,7 @@
 			</li>
 		{/each}
 	</ul>
+	<Pagination pager={data.pager} />
 {:else}
 	<p
 		class="mt-6 rounded-lg border border-dashed border-ink-900/20 bg-white px-6 py-12 text-center text-sm text-stone-muted"

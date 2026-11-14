@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Pagination from '#lib/components/Pagination.svelte';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import { coverUrl, eventShortDate, eventTime, isPast } from '#lib/events.ts';
@@ -108,6 +109,7 @@
 			</li>
 		{/each}
 	</ul>
+	<Pagination pager={data.pager} />
 {:else}
 	<div
 		class="mt-8 rounded-lg border border-dashed border-ink-900/20 bg-white px-6 py-14 text-center"

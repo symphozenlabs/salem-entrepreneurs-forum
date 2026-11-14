@@ -32,6 +32,9 @@ const profile = {
 	about: memberProfile.about,
 	offerings: memberProfile.offerings,
 	lookingFor: memberProfile.lookingFor,
+	hub: memberProfile.hub,
+	address: memberProfile.address,
+	mapUrl: memberProfile.mapUrl,
 	photoVersion
 };
 
@@ -49,6 +52,9 @@ export type DirectoryMember = {
 	about: string | null;
 	offerings: string | null;
 	lookingFor: string | null;
+	hub: string;
+	address: string | null;
+	mapUrl: string | null;
 	photoVersion: number | null;
 };
 
@@ -81,41 +87,68 @@ export async function getMe(userId: string) {
 
 const escapeLike = (q: string) => `%${q.replace(/[%_\\]/g, '\\$&')}%`;
 
+/** One page of the directory, plus how many members match in all. */
 export async function directory(
 	me: string,
-	q: string,
-	industry: string
-): Promise<DirectoryMember[]> {
-	const term = q ? escapeLike(q) : null;
-	return members()
-		.where(
-			and(
-				listed(),
-				ne(memberProfile.userId, me),
-				industry ? eq(memberProfile.industry, industry) : undefined,
-				term
-					? or(
-							ilike(user.name, term),
-							ilike(memberProfile.business, term),
-							ilike(memberProfile.industry, term),
-							ilike(memberProfile.offerings, term),
-							ilike(memberProfile.lookingFor, term),
-							ilike(memberProfile.city, term)
-						)
-					: undefined
-			)
-		)
-		.orderBy(asc(user.name))
-		.limit(300);
+	filters: { q: string; industry: string; hub: string },
+	page: { limit: number; offset: number }
+): Promise<{ members: DirectoryMember[]; total: number }> {
+	const term = filters.q ? escapeLike(filters.q) : null;
+	const where = and(
+		listed(),
+		ne(memberProfile.userId, me),
+		filters.industry ? eq(memberProfile.industry, filters.industry) : undefined,
+		filters.hub ? eq(memberProfile.hub, filters.hub) : undefined,
+		term
+			? or(
+					ilike(user.name, term),
+					ilike(memberProfile.business, term),
+					ilike(memberProfile.industry, term),
+					ilike(memberProfile.offerings, term),
+					ilike(memberProfile.lookingFor, term),
+					ilike(memberProfile.city, term)
+				)
+			: undefined
+	);
+	const [rows, [count]] = await Promise.all([
+		members()
+			.where(where)
+			.orderBy(asc(user.name), asc(user.id))
+			.limit(page.limit)
+			.offset(page.offset),
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(memberProfile)
+			.innerJoin(user, eq(user.id, memberProfile.userId))
+			.where(where)
+	]);
+	return { members: rows, total: count.n };
 }
 
-export async function directoryIndustries() {
+/** Headline numbers for the directory: listed members, per hub, and the categories in use. */
+export async function directoryStats() {
 	const rows = await db
-		.selectDistinct({ industry: memberProfile.industry })
+		.select({
+			hub: memberProfile.hub,
+			industry: memberProfile.industry,
+			n: sql<number>`count(*)::int`
+		})
 		.from(memberProfile)
 		.where(listed())
-		.orderBy(asc(memberProfile.industry));
-	return rows.map((r) => r.industry);
+		.groupBy(memberProfile.hub, memberProfile.industry);
+	const hubs = new Map<string, number>();
+	const industries = new Set<string>();
+	let total = 0;
+	for (const r of rows) {
+		total += r.n;
+		hubs.set(r.hub, (hubs.get(r.hub) ?? 0) + r.n);
+		industries.add(r.industry);
+	}
+	return {
+		total,
+		hubs: [...hubs].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+		industries: [...industries].sort((a, b) => a.localeCompare(b))
+	};
 }
 
 export async function memberById(id: string): Promise<DirectoryMember | undefined> {
@@ -130,7 +163,8 @@ export async function memberOptions(me: string): Promise<MemberOption[]> {
 			id: user.id,
 			name: user.name,
 			business: memberProfile.business,
-			industry: memberProfile.industry
+			industry: memberProfile.industry,
+			hub: memberProfile.hub
 		})
 		.from(memberProfile)
 		.innerJoin(user, eq(user.id, memberProfile.userId))
@@ -160,7 +194,14 @@ const inRange = (
 
 export async function giveConnect(
 	me: string,
-	input: { toId: string; kind: string; contactName: string; contactPhone: string; notes: string }
+	input: {
+		toId: string;
+		kind: string;
+		contactName: string;
+		contactPhone: string;
+		value: number | null;
+		notes: string;
+	}
 ) {
 	if (input.toId === me) return { error: 'Choose another member.' };
 	if (!(input.kind in connectKinds)) return { error: 'Choose who the connect is for.' };
@@ -169,15 +210,39 @@ export async function giveConnect(
 		(!input.contactName || input.contactPhone.replace(/\D/g, '').length < 10)
 	)
 		return { error: 'For a referral, add the person’s name and a 10-digit phone number.' };
+	if (
+		input.value !== null &&
+		(!Number.isInteger(input.value) || input.value < 1 || input.value > 1_000_000_000)
+	)
+		return { error: 'Enter the value in whole rupees, or leave it empty.' };
 	if (!(await isActiveMember(input.toId))) return { error: 'That member isn’t active.' };
-	await db.insert(connect).values({
+	const row = {
 		fromId: me,
 		toId: input.toId,
 		kind: input.kind,
 		contactName: input.kind === 'referral' ? input.contactName : null,
 		contactPhone: input.kind === 'referral' ? input.contactPhone : null,
+		value: input.value,
 		notes: input.notes || null
-	});
+	};
+	if (input.value === null) {
+		await db.insert(connect).values(row);
+		return { ok: true };
+	}
+	// With a value, the business is recorded straight away (one statement, so both or
+	// neither are saved) and waits for the receiving member to approve it.
+	await db.execute(sql`
+		with c as (
+			insert into ${connect} (from_id, to_id, kind, contact_name, contact_phone, value, notes)
+			values (${row.fromId}, ${row.toId}, ${row.kind}, ${row.contactName}, ${row.contactPhone},
+				${row.value}, ${row.notes})
+			returning id
+		)
+		insert into ${businessTransaction}
+			(receiver_id, giver_id, recorded_by_id, kind, amount, description, connect_id)
+		select ${row.toId}, ${me}, ${me}, ${row.kind === 'referral' ? 'referral' : 'direct'},
+			${row.value}, ${row.notes}, id
+		from c`);
 	return { ok: true };
 }
 
@@ -190,13 +255,28 @@ export async function myConnects(me: string, range: DateRange) {
 			kind: connect.kind,
 			contactName: connect.contactName,
 			contactPhone: connect.contactPhone,
+			value: connect.value,
 			notes: connect.notes,
 			status: connect.status,
 			createdAt: connect.createdAt,
 			otherId: other.id,
 			otherName: other.name,
 			otherPhone: otherProfile.phone,
-			otherBusiness: otherProfile.business
+			otherBusiness: otherProfile.business,
+			// The business recorded from this connect, if any (latest one).
+			txnId: sql<
+				number | null
+			>`(select id from ${businessTransaction} where ${businessTransaction.connectId} = ${connect.id} order by id desc limit 1)`,
+			txnAmount: sql<
+				number | null
+			>`(select amount from ${businessTransaction} where ${businessTransaction.connectId} = ${connect.id} order by id desc limit 1)`,
+			txnStatus: sql<
+				string | null
+			>`(select status from ${businessTransaction} where ${businessTransaction.connectId} = ${connect.id} order by id desc limit 1)`,
+			// Who recorded it decides who approves it.
+			txnRecordedBy: sql<
+				string | null
+			>`(select recorded_by_id from ${businessTransaction} where ${businessTransaction.connectId} = ${connect.id} order by id desc limit 1)`
 		})
 		.from(connect)
 		.innerJoin(
@@ -206,11 +286,44 @@ export async function myConnects(me: string, range: DateRange) {
 		.leftJoin(otherProfile, eq(otherProfile.userId, other.id))
 		.where(and(or(eq(connect.fromId, me), eq(connect.toId, me)), inRange(connect.createdAt, range)))
 		.orderBy(desc(connect.createdAt))
-		.limit(500);
+		.limit(5000);
+	const withTurn = rows.map((r) => ({
+		...r,
+		/** The linked business is waiting for me (the other member recorded it). */
+		txnAwaitsMe: r.txnStatus === 'pending' && !!r.txnRecordedBy && r.txnRecordedBy !== me
+	}));
 	return {
-		received: rows.filter((r) => r.fromId !== me),
-		given: rows.filter((r) => r.fromId === me)
+		received: withTurn.filter((r) => r.fromId !== me),
+		given: withTurn.filter((r) => r.fromId === me)
 	};
+}
+
+/**
+ * The member who received a connect marks it "Business done" with the value of the
+ * business. That records a transaction automatically, waiting for the member who gave
+ * the connect to approve it (it approves itself after AUTO_CONFIRM_DAYS).
+ */
+export async function closeConnect(me: string, id: number, amount: number, description: string) {
+	if (!Number.isInteger(amount) || amount < 1 || amount > 1_000_000_000)
+		return { error: 'Enter the business value in whole rupees.' };
+	const [c] = await db
+		.select({ id: connect.id, fromId: connect.fromId, kind: connect.kind })
+		.from(connect)
+		.where(and(eq(connect.id, id), eq(connect.toId, me)));
+	if (!c) return { error: 'That connect no longer exists.' };
+	// One live record per connect: a declined one can be replaced with a corrected value.
+	const inserted = await db.execute(sql`
+		insert into ${businessTransaction}
+			(receiver_id, giver_id, recorded_by_id, kind, amount, description, connect_id)
+		select ${me}, ${c.fromId}, ${me}, ${c.kind === 'referral' ? 'referral' : 'direct'},
+			${amount}::int, ${description || null}, ${c.id}
+		where not exists (select 1 from ${businessTransaction}
+			where ${businessTransaction.connectId} = ${c.id} and ${businessTransaction.status} <> 'declined')
+		returning id`);
+	const rows = Array.isArray(inserted) ? inserted : ((inserted as { rows?: unknown[] }).rows ?? []);
+	if (!rows.length) return { error: 'Business from this connect is already recorded.' };
+	await db.update(connect).set({ status: 'converted' }).where(eq(connect.id, c.id));
+	return { ok: true };
 }
 
 /** Only the member who received a connect tracks how it went. */
@@ -318,7 +431,7 @@ export async function myTransactions(me: string, range: DateRange) {
 			)
 		)
 		.orderBy(desc(businessTransaction.createdAt))
-		.limit(500);
+		.limit(5000);
 	return rows.map((r) => ({
 		...r,
 		direction: r.receiverId === me ? ('received' as const) : ('given' as const),
@@ -349,8 +462,14 @@ export async function respondToTransaction(
 				or(eq(businessTransaction.receiverId, me), eq(businessTransaction.giverId, me))
 			)
 		)
-		.returning({ id: businessTransaction.id });
-	return updated.length ? { ok: true } : { error: 'That record is no longer waiting for you.' };
+		.returning({ id: businessTransaction.id, connectId: businessTransaction.connectId });
+	if (!updated.length) return { error: 'That record is no longer waiting for you.' };
+	if (confirm && updated[0].connectId)
+		await db
+			.update(connect)
+			.set({ status: 'converted' })
+			.where(eq(connect.id, updated[0].connectId));
+	return { ok: true };
 }
 
 /** The recorder may withdraw a record until it's answered. */

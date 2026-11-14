@@ -3,7 +3,7 @@
 	import type { PageProps } from './$types';
 	import { brand, contact } from '#lib/content.ts';
 
-	let { form }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	let busy = $state(false);
 </script>
 
@@ -47,6 +47,13 @@
 						Your login was emailed when your membership was approved.
 					</p>
 				</div>
+				{#if data.signedInAdmin}
+					<p class="rounded-lg bg-ivory-100/10 px-4 py-3 text-sm text-ivory-200/80">
+						You’re signed in as admin ({data.signedInAdmin}).
+						<a href="/admin" class="font-semibold text-brass-300">Go to the admin</a>, or sign in
+						below as a member.
+					</p>
+				{/if}
 				<label class="block">
 					<span class="field-label !text-ivory-200/80">Email</span>
 					<input

@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
+import { isHub } from '#lib/network.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { membershipApplication, payment, paymentProof, user } from '#lib/server/db/schema.ts';
@@ -31,6 +32,7 @@ const FIELDS = [
 	'city',
 	'website',
 	'about',
+	'hub',
 	'referredBy',
 	'utr'
 ] as const;
@@ -52,6 +54,7 @@ export const actions: Actions = {
 		if (!isEmail(v.email)) errors.email = 'Enter a valid email — your login is sent here.';
 		if (v.phone.replace(/\D/g, '').length < 10) errors.phone = 'Enter a 10-digit mobile number.';
 		if (!v.business) errors.business = 'Enter your business name.';
+		if (!isHub(v.hub)) errors.hub = 'Choose your hub.';
 		v.industry = industryFrom(data);
 		if (!v.industry)
 			errors.industry =
@@ -114,6 +117,7 @@ export const actions: Actions = {
 					city: v.city || null,
 					website: website ?? null,
 					about: v.about || null,
+					hub: v.hub,
 					referredBy: v.referredBy || null
 				})
 				.returning({ id: membershipApplication.id });

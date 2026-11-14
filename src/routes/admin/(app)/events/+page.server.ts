@@ -1,15 +1,18 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
+import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { event, eventCover } from '#lib/server/db/schema.ts';
 import { allEvents, uniqueSlug } from '#lib/server/events.ts';
 import { registrationCounts } from '#lib/server/registrations.ts';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ url }) => {
 	const [events, counts] = await Promise.all([allEvents(), registrationCounts()]);
+	const { items, pager } = paginate(events, url, 20);
 	return {
-		events: events.map((e) => ({
+		pager,
+		events: items.map((e) => ({
 			...e,
 			registered: counts.get(e.id)?.confirmed ?? 0,
 			toVerify: counts.get(e.id)?.pending ?? 0

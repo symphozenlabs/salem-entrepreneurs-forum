@@ -91,6 +91,34 @@
 				/>
 				{#if errors.website}<p class="field-error">{errors.website}</p>{/if}
 			</label>
+			<label class="block">
+				<span class="field-label">Business address</span>
+				<input
+					name="address"
+					maxlength="300"
+					value={val('address', me.address)}
+					class="field-input"
+					placeholder="Shop / office address"
+				/>
+				{#if errors.address}<p class="field-error">{errors.address}</p>{/if}
+			</label>
+			<label class="block">
+				<span class="field-label">Google Maps link</span>
+				<input
+					name="mapUrl"
+					type="url"
+					value={val('mapUrl', me.mapUrl)}
+					class="field-input"
+					placeholder="https://maps.app.goo.gl/…"
+				/>
+				{#if errors.mapUrl}<p class="field-error">{errors.mapUrl}</p>{/if}
+			</label>
+			<div class="block">
+				<span class="field-label">Hub</span>
+				<p class="field-input bg-ivory-100 text-stone-muted">{me.hub}</p>
+				<span class="mt-1.5 block text-xs text-stone-muted">To move hubs, ask the secretariat.</span
+				>
+			</div>
 		</div>
 		<label class="block">
 			<span class="field-label">About your business</span>

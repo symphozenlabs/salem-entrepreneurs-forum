@@ -1,7 +1,8 @@
 <script lang="ts">
+	import Pagination from '#lib/components/Pagination.svelte';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
-	import { CalendarDays, IdCard } from '@lucide/svelte';
+	import { BadgeCheck, CalendarDays, IdCard } from '@lucide/svelte';
 	import { rupees } from '#lib/content.ts';
 	import { eventShortDate, eventTime } from '#lib/events.ts';
 	import CredentialsNotice from '#lib/components/admin/CredentialsNotice.svelte';
@@ -20,7 +21,7 @@
 		};
 	};
 
-	type Payment = (typeof data.payments)[number];
+	type Payment = (typeof data.eventPayments)[number];
 
 	const statusTabs = [
 		{ key: 'pending', label: 'To verify' },
@@ -50,9 +51,6 @@
 		}
 	};
 
-	const eventPayments = $derived(data.payments.filter((p) => p.purpose === 'event'));
-	const membershipPayments = $derived(data.payments.filter((p) => p.purpose !== 'event'));
-	const sum = (list: Payment[]) => list.reduce((s, p) => s + p.amount, 0);
 	const when = (d: Date) => `${eventShortDate(d)}, ${eventTime(d)}`;
 
 	/** Builds a link that keeps the other filters as they are. */
@@ -85,6 +83,13 @@
 								>{kind.label}</span
 							>
 							<span class="font-semibold">{p.name}</span>
+							{#if p.purpose === 'event' && p.isMember}
+								<span
+									class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[0.7rem] font-semibold text-emerald-800"
+									title="Registered while signed in as a member"
+									><BadgeCheck class="size-3" /> Member</span
+								>
+							{/if}
 							{#if p.memberNumber}<span class="text-sm text-stone-muted">{p.memberNumber}</span
 								>{/if}
 						</p>
@@ -112,6 +117,11 @@
 					</div>
 					<div class="text-right">
 						<p class="display text-2xl">{rupees(p.amount)}</p>
+						{#if p.purpose === 'event' && p.eventFee !== null && p.amount < p.eventFee}
+							<p class="text-xs text-emerald-800">
+								Member price · regular <span class="line-through">{rupees(p.eventFee)}</span>
+							</p>
+						{/if}
 						<p class="font-mono text-sm">UTR {p.utr}</p>
 						{#if p.hasProof}
 							<a
@@ -161,18 +171,31 @@
 	</ul>
 {/snippet}
 
-{#snippet section(title: string, icon: typeof CalendarDays, list: Payment[], empty: string)}
+{#snippet section(
+	title: string,
+	icon: typeof CalendarDays,
+	list: Payment[],
+	empty: string,
+	total: { count: number; amount: number },
+	more: string | null
+)}
 	{@const Icon = icon}
 	<section class="mt-8">
 		<h2 class="flex items-center gap-2 font-semibold">
 			<Icon class="size-4 text-brass-600" />
 			{title}
-			<span class="text-sm font-normal text-stone-muted">· {list.length} · {rupees(sum(list))}</span
+			<span class="text-sm font-normal text-stone-muted"
+				>· {total.count} · {rupees(total.amount)}</span
 			>
 		</h2>
 		<div class="mt-3">
 			{#if list.length}
 				{@render paymentList(list)}
+				{#if more && total.count > list.length}
+					<a href={more} class="mt-3 inline-block text-sm font-semibold text-brass-600"
+						>See all {total.count} →</a
+					>
+				{/if}
 			{:else}
 				<p
 					class="rounded-lg border border-dashed border-ink-900/20 bg-white px-6 py-8 text-center text-sm text-stone-muted"
@@ -269,14 +292,18 @@
 	{@render section(
 		'Event registrations',
 		CalendarDays,
-		eventPayments,
-		data.show === 'pending' ? 'No event payments waiting.' : 'None.'
+		data.eventPayments,
+		data.show === 'pending' ? 'No event payments waiting.' : 'None.',
+		data.totals.event,
+		href({ type: 'events' })
 	)}
 	{@render section(
 		'Membership payments — joining fees & renewals',
 		IdCard,
-		membershipPayments,
-		data.show === 'pending' ? 'No membership payments waiting.' : 'None.'
+		data.membershipPayments,
+		data.show === 'pending' ? 'No membership payments waiting.' : 'None.',
+		data.totals.membership,
+		href({ type: 'membership' })
 	)}
 {:else if data.kind === 'events'}
 	{@render section(
@@ -284,14 +311,19 @@
 			? (data.events.find((e) => e.id === data.eventFilter)?.title ?? 'Event registrations')
 			: 'Event registrations',
 		CalendarDays,
-		eventPayments,
-		data.show === 'pending' ? 'No event payments waiting.' : 'None.'
+		data.eventPayments,
+		data.show === 'pending' ? 'No event payments waiting.' : 'None.',
+		data.totals.event,
+		null
 	)}
 {:else}
 	{@render section(
 		'Membership payments — joining fees & renewals',
 		IdCard,
-		membershipPayments,
-		data.show === 'pending' ? 'No membership payments waiting.' : 'None.'
+		data.membershipPayments,
+		data.show === 'pending' ? 'No membership payments waiting.' : 'None.',
+		data.totals.membership,
+		null
 	)}
 {/if}
+{#if data.pager}<Pagination pager={data.pager} />{/if}

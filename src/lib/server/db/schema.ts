@@ -117,6 +117,8 @@ export const membershipApplication = pgTable('membership_application', {
 	city: text('city'),
 	website: text('website'),
 	about: text('about'),
+	/** Salem | Coimbatore */
+	hub: text('hub').notNull().default('Salem'),
 	referredBy: text('referred_by'),
 	/** pending | approved | rejected */
 	status: text('status').notNull().default('pending'),
@@ -182,6 +184,11 @@ export const memberProfile = pgTable('member_profile', {
 	offerings: text('offerings'),
 	/** The connections, suppliers or partners the member is looking for. */
 	lookingFor: text('looking_for'),
+	/** Salem | Coimbatore — chosen on the application; only the admin changes it. */
+	hub: text('hub').notNull().default('Salem'),
+	/** Where to find the business, shown to other members. */
+	address: text('address'),
+	mapUrl: text('map_url'),
 	showInDirectory: boolean('show_in_directory').notNull().default(true),
 	joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
@@ -221,6 +228,8 @@ export const connect = pgTable(
 		kind: text('kind').notNull(),
 		contactName: text('contact_name'),
 		contactPhone: text('contact_phone'),
+		/** Rupees: what the giver expects the work to be worth. */
+		value: integer('value'),
 		notes: text('notes'),
 		/** new | contacted | converted | not_converted — kept up to date by the receiver. */
 		status: text('status').notNull().default('new'),

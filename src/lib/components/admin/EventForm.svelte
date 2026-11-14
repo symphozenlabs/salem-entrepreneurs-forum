@@ -287,7 +287,8 @@
 						placeholder="Same as fee"
 					/>
 					<span class="mt-1.5 block text-xs text-stone-muted"
-						>Optional lower fee for signed-in members.</span
+						>Optional. Setting it (0 = free for members) also lists the event under Events in the
+						member portal, where members register and pay.</span
 					>
 					{#if errors.memberFee}<p class="field-error">{errors.memberFee}</p>{/if}
 				</label>

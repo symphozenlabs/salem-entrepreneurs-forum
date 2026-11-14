@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { desc, eq } from 'drizzle-orm';
+import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { contactMessage } from '#lib/server/db/schema.ts';
@@ -15,8 +16,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		.from(contactMessage)
 		.where(show === 'all' ? undefined : eq(contactMessage.handled, show === 'handled'))
 		.orderBy(desc(contactMessage.createdAt))
-		.limit(200);
-	return { messages, show };
+		.limit(5000);
+	const { items, pager } = paginate(messages, url, 20);
+	return { messages: items, pager, show };
 };
 
 const idOf = async (request: Request) => {
