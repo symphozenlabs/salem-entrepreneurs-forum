@@ -26,6 +26,27 @@ The local database is development-only; production builds always use Neon.
 | `DATABASE_URL`       | Neon connection string (`postgres://…`), or `pglite:./.pglite` locally       |
 | `ORIGIN`             | The site's address, e.g. `https://salem-entrepreneurs-forum.vercel.app`      |
 | `BETTER_AUTH_SECRET` | 32+ random characters (`npx auth secret`). Also the one-time admin setup key |
+| `FORUM_BASE_DOMAIN`  | Optional. The custom domain the forums are subdomains of, e.g. `example.in`  |
+
+## Three forums
+
+One site serves the **Salem**, **Coimbatore** and **Tamil Nadu** Entrepreneurs Forums
+(`src/lib/forums.ts` holds each one's name, copy, industries and scroll story). Membership,
+admin and payments are shared; each forum has its own landing page and event list.
+
+- **Which forum:** the subdomain (`salem.`, `coimbatore.`, `tamilnadu.` + `FORUM_BASE_DOMAIN`),
+  else the `forum` cookie. Visitors land on **Tamil Nadu** (`DEFAULT_FORUM`) and switch forum with
+  the dropdown on the top-left logo. Links like `/?forum=coimbatore` pick a forum directly.
+- **Without a custom domain** (e.g. `*.vercel.app`), leave `FORUM_BASE_DOMAIN` empty: everything
+  works on one address and the cookie decides.
+- **With a custom domain:** add the three subdomains (and the bare domain) to the Vercel project,
+  set `FORUM_BASE_DOMAIN`, and sign-in works across all three.
+- **Events** belong to one forum or to all three (chosen in the event form). Tamil Nadu is the
+  state-wide forum and lists every event; Salem and Coimbatore list their own events plus those
+  marked for all three. Enquiries and applications record the forum they came through (shown as
+  a badge in the admin).
+- Test locally with `?forum=…`, or set `FORUM_BASE_DOMAIN="localhost"` and open
+  `http://coimbatore.localhost:5173`.
 
 ## Admin
 
@@ -65,3 +86,13 @@ The home page video is built from the Higgsfield clips:
 ```sh
 scripts/frames.sh story/clips 200   # also runs scripts/keyframes.py for the sharp chapter stills
 ```
+
+Coimbatore and Tamil Nadu each have one Kling 4.0 video made from six keyframes
+(`story/<forum>/STORYBOARD.md`). Their frames are built with:
+
+```sh
+python3 -I scripts/story.py coimbatore story/coimbatore/clips/coimbatore-full.mp4 story/coimbatore/keyframes
+python3 -I scripts/story.py tamilnadu  story/tamilnadu/clips/tamilnadu-full.mp4  story/tamilnadu/keyframes
+```
+
+The source videos are kept out of git (`story/*/clips/`, `Assets/*/video/`).

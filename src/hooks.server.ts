@@ -1,6 +1,9 @@
 import type { Handle } from '@sveltejs/kit/hooks';
+import { sequence } from '@sveltejs/kit/hooks';
 import { building, dev } from '$app/env';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
+import { resolveForum } from '#lib/server/forum.ts';
+import { DEFAULT_FORUM } from '#lib/forums.ts';
 
 type Auth = (typeof import('#lib/server/auth.ts'))['auth'];
 
@@ -85,4 +88,20 @@ function unavailable(error: unknown) {
 	});
 }
 
-export const handle: Handle = handleBetterAuth;
+/** Which of the three forums this request is for (subdomain, ?forum=, or cookie). */
+const handleForum: Handle = async ({ event, resolve }) => {
+	if (building) {
+		event.locals.forum = DEFAULT_FORUM;
+		return resolve(event);
+	}
+	const r = resolveForum(event);
+	if ('redirect' in r) {
+		const res = redirect(r.redirect.toString());
+		if (r.setCookie) res.headers.append('set-cookie', r.setCookie);
+		return res;
+	}
+	event.locals.forum = r.forum;
+	return resolve(event);
+};
+
+export const handle: Handle = sequence(handleForum, handleBetterAuth);

@@ -1,13 +1,25 @@
 import { defineEnvVars } from '@sveltejs/kit/env';
 
 export const variables = defineEnvVars({
-	DATABASE_URL: { description: 'The database connection string.' },
+	// Optional so a build without a database (e.g. Vercel Preview) still succeeds: public pages
+	// render without it, and the admin and member areas answer 503 (see hooks.server.ts).
+	DATABASE_URL: {
+		description: 'The database connection string.',
+		schema: (value) => value ?? ''
+	},
 	ORIGIN: {
 		description: 'The app origin (base URL), e.g. `http://localhost:5173`.'
 	},
 	BETTER_AUTH_SECRET: {
 		description:
 			'Secret used to sign tokens. For production use 32 characters generated with high entropy. See [Better Auth installation](https://www.better-auth.com/docs/installation).'
+	},
+	// Optional: the custom domain the forums live under as subdomains (salem.<domain>,
+	// coimbatore.<domain>, tamilnadu.<domain>). Unset, the forum is chosen by cookie.
+	FORUM_BASE_DOMAIN: {
+		description:
+			'Parent domain for the forum subdomains, e.g. `entrepreneursforum.in`. Leave empty on *.vercel.app.',
+		schema: (value) => value ?? ''
 	},
 	// Optional: without these, admins are shown new members' passwords to share by hand.
 	RESEND_API_KEY: {

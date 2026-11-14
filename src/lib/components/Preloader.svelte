@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { brand } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
+	import ForumLogo from './ForumLogo.svelte';
+
+	const forum = $derived(activeForum());
+	const brand = $derived(forum.brand);
 	import { gsap, prefersReducedMotion, getLenis } from '#lib/motion.ts';
 
 	let el = $state<HTMLDivElement>();
@@ -27,7 +31,11 @@
 			}
 		});
 		tl.from('[data-pl-logo]', { clipPath: 'inset(0 100% 0 0)', duration: 1.2, ease: 'expo.inOut' })
-			.from('[data-pl-word]', { yPercent: 120, duration: 0.7, ease: 'expo.out', stagger: 0.12 }, '-=0.4')
+			.from(
+				'[data-pl-word]',
+				{ yPercent: 120, duration: 0.7, ease: 'expo.out', stagger: 0.12 },
+				'-=0.4'
+			)
 			.to('[data-pl-bar]', { scaleX: 1, duration: 1, ease: 'power2.inOut' }, '<')
 			.to(el!, { clipPath: 'inset(0 0 100% 0)', duration: 1.1, ease: 'expo.inOut' }, '+=0.15');
 
@@ -43,7 +51,9 @@
 		aria-hidden="true"
 	>
 		<div class="flex flex-col items-center">
-			<img data-pl-logo src="/brand/logo-light.png" alt="" class="w-64 sm:w-96" />
+			<div data-pl-logo>
+				<ForumLogo {forum} alt="" class="w-64 sm:w-96" text="text-2xl text-ivory-50 sm:text-5xl" />
+			</div>
 			<div class="mt-10 flex gap-3 overflow-hidden">
 				{#each brand.tagline as w (w)}
 					<span data-pl-word class="eyebrow inline-block text-brass-300">{w}</span>

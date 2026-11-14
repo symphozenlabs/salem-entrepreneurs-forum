@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { scrollIntoViewTop } from '#lib/motion.ts';
 	import type { PageProps } from './$types';
-	import { brand } from '#lib/content.ts';
+	import { activeForum } from '#lib/forum.svelte.ts';
 	import { eventDate, eventTimeRange } from '#lib/events.ts';
 	import RegistrationForm from '#lib/components/RegistrationForm.svelte';
 
 	let { data, form }: PageProps = $props();
+	const brand = $derived(activeForum().brand);
 	let section: HTMLElement;
 
 	const e = $derived(data.event);

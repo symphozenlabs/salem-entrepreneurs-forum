@@ -1,0 +1,31 @@
+{
+	"poster": "/story/coimbatore/poster.jpg",
+	"sets": {
+		"desktop": {
+			"count": 200,
+			"width": 1280,
+			"height": 720,
+			"pattern": "/story/coimbatore/desktop/f_{i}.jpg",
+			"pad": 4
+		},
+		"mobile": {
+			"count": 200,
+			"width": 720,
+			"height": 960,
+			"pattern": "/story/coimbatore/mobile/f_{i}.jpg",
+			"pad": 4
+		}
+	},
+	"stills": {
+		"frames": [
+			2,
+			67,
+			90,
+			118,
+			161,
+			199
+		],
+		"desktop": "/story/coimbatore/stills/desktop/k{i}.jpg",
+		"mobile": "/story/coimbatore/stills/mobile/k{i}.jpg"
+	}
+}

@@ -20,6 +20,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	const values: Record<string, string> = {
 		title: e.title,
 		category: e.category,
+		forum: e.forum,
 		summary: e.summary,
 		description: e.description ?? '',
 		startsAt: toLocalInput(e.startsAt),

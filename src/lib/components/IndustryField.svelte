@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { industries } from '#lib/content.ts';
+	import { forumList } from '#lib/forums.ts';
+	// Every forum's industries: membership is shared across the forums.
+	const industries = [
+		...new Map(forumList.flatMap((f) => f.industries).map((i) => [i.name, i])).values()
+	];
 
 	/** `value` is the saved industry: one of the listed ones, or whatever was typed under "Other". */
 	let { value = '', error = '' }: { value?: string; error?: string } = $props();

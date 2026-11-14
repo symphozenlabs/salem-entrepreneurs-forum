@@ -8,10 +8,10 @@ import { upiQrSvg } from '#lib/server/qr.ts';
 
 const text = (data: FormData, key: string) => String(data.get(key) ?? '').trim();
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
 	// The home page must render even when the database is down or not yet configured.
 	const [events, membership, payment] = await Promise.all([
-		upcomingEvents(3).catch((e) => {
+		upcomingEvents(3, locals.forum).catch((e) => {
 			console.error('[home] events unavailable:', e);
 			return [];
 		}),
@@ -27,14 +27,15 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-	contact: async ({ request }) => {
+	contact: async ({ request, locals }) => {
 		const data = await request.formData();
 		const msg = {
 			name: text(data, 'name'),
 			phone: text(data, 'phone'),
 			email: text(data, 'email'),
 			business: text(data, 'business') || null,
-			message: text(data, 'message')
+			message: text(data, 'message'),
+			forum: locals.forum
 		};
 
 		if (!msg.name || !msg.phone || !msg.email || !msg.message)

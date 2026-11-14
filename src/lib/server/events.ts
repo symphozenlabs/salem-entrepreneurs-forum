@@ -1,4 +1,5 @@
-import { and, asc, desc, eq, gt, gte, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
+import { DEFAULT_FORUM, STATE_FORUM, isForumId, type ForumId } from '#lib/forums.ts';
 import { db } from '#lib/server/db/index.ts';
 import { event, eventCover, eventRegistration } from '#lib/server/db/schema.ts';
 import { categories, fromLocalInput, registrationModes, type PublicEvent } from '#lib/events.ts';
@@ -27,6 +28,7 @@ const columns = {
 	fee: event.fee,
 	memberFee: event.memberFee,
 	registrationClosesAt: event.registrationClosesAt,
+	forum: event.forum,
 	coverVersion: sql<number | null>`floor(extract(epoch from ${eventCover.updatedAt}))::int`,
 	/** Seats held through our form (pending or confirmed), for "Fully booked" on cards. */
 	taken: sql<number>`(select count(*) from ${eventRegistration} where ${eventRegistration.eventId} = ${event.id} and ${eventRegistration.status} in ('pending', 'confirmed'))::int`
@@ -35,16 +37,23 @@ const columns = {
 const withCover = () =>
 	db.select(columns).from(event).leftJoin(eventCover, eq(eventCover.eventId, event.id));
 
-export async function upcomingEvents(limit = 50): Promise<PublicEvent[]> {
+/**
+ * Events listed on a forum's site. Tamil Nadu is the state-wide forum, so it lists every
+ * event; a city forum lists its own events and those marked for all forums.
+ */
+const onForum = (forum?: ForumId) =>
+	!forum || forum === STATE_FORUM ? undefined : inArray(event.forum, [forum, 'all']);
+
+export async function upcomingEvents(limit = 50, forum?: ForumId): Promise<PublicEvent[]> {
 	return withCover()
-		.where(and(eq(event.published, true), gte(endOf, new Date())))
+		.where(and(eq(event.published, true), gte(endOf, new Date()), onForum(forum)))
 		.orderBy(asc(event.startsAt))
 		.limit(limit);
 }
 
-export async function pastEvents(limit = 50): Promise<PublicEvent[]> {
+export async function pastEvents(limit = 50, forum?: ForumId): Promise<PublicEvent[]> {
 	return withCover()
-		.where(and(eq(event.published, true), lt(endOf, new Date())))
+		.where(and(eq(event.published, true), lt(endOf, new Date()), onForum(forum)))
 		.orderBy(desc(event.startsAt))
 		.limit(limit);
 }
@@ -195,6 +204,8 @@ export async function parseEventForm(data: FormData) {
 
 	// Registration: how people sign up, and for our own form its fee, deadline and questions.
 	const registration = str(data, 'registration') || 'whatsapp';
+	const forumPicked = str(data, 'forum') || DEFAULT_FORUM;
+	if (forumPicked !== 'all' && !isForumId(forumPicked)) errors.forum = 'Choose a forum.';
 	const money = (key: string) => {
 		const v = str(data, key).replace(/[₹,\s]/g, '');
 		return v === '' ? null : Number(v);
@@ -257,6 +268,7 @@ export async function parseEventForm(data: FormData) {
 		memberFee: memberFeeOk ? memberFee : null,
 		registrationClosesAt,
 		formFields,
+		forum: forumPicked,
 		published: data.get('published') === 'on'
 	};
 	return { ok: true as const, values, cover };
