@@ -10,8 +10,6 @@ declare global {
 			session?: AuthSession;
 			/** The forum this request is for. */
 			forum: ForumId;
-			/** False until the visitor has picked a forum (or arrived on a forum subdomain). */
-			forumChosen: boolean;
 		}
 
 		// interface Error {}

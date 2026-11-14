@@ -34,8 +34,7 @@ function remember(cookies: Cookies, id: ForumId, base: string) {
 	cookies.set(FORUM_COOKIE, id, cookieOptions(base));
 }
 
-export type ForumResolution =
-	{ redirect: URL; setCookie?: string } | { forum: ForumId; chosen: boolean };
+export type ForumResolution = { redirect: URL; setCookie?: string } | { forum: ForumId };
 
 /**
  * Works out which forum a request is for:
@@ -43,7 +42,7 @@ export type ForumResolution =
  *    (on the forum's subdomain when subdomains are in use);
  * 2. the subdomain;
  * 3. the remembered cookie — on the bare parent domain this redirects to the forum's subdomain;
- * 4. otherwise Salem, with `chosen: false` so the site asks the visitor to pick.
+ * 4. otherwise the default forum (Tamil Nadu).
  */
 export function resolveForum(event: RequestEvent): ForumResolution {
 	const { url, cookies } = event;
@@ -62,7 +61,7 @@ export function resolveForum(event: RequestEvent): ForumResolution {
 	const fromHost = forumFromHost(host, base);
 	if (fromHost) {
 		if (cookies.get(FORUM_COOKIE) !== fromHost) remember(cookies, fromHost, base);
-		return { forum: fromHost, chosen: true };
+		return { forum: fromHost };
 	}
 
 	const saved = cookies.get(FORUM_COOKIE);
@@ -70,8 +69,8 @@ export function resolveForum(event: RequestEvent): ForumResolution {
 		const bare = base && (host === base || host === 'www.' + base);
 		if (bare && event.request.method === 'GET' && !url.pathname.startsWith('/api'))
 			return { redirect: forumUrl(url, saved, base) };
-		return { forum: saved, chosen: true };
+		return { forum: saved };
 	}
 
-	return { forum: DEFAULT_FORUM, chosen: false };
+	return { forum: DEFAULT_FORUM };
 }

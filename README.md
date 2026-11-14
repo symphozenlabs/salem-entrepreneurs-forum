@@ -35,8 +35,8 @@ One site serves the **Salem**, **Coimbatore** and **Tamil Nadu** Entrepreneurs F
 admin and payments are shared; each forum has its own landing page and event list.
 
 - **Which forum:** the subdomain (`salem.`, `coimbatore.`, `tamilnadu.` + `FORUM_BASE_DOMAIN`),
-  else the `forum` cookie. A first-time visitor sees a "Choose your forum" screen; the top-left
-  logo dropdown switches forum at any time. Links like `/?forum=coimbatore` pick a forum directly.
+  else the `forum` cookie. Visitors land on **Tamil Nadu** (`DEFAULT_FORUM`) and switch forum with
+  the dropdown on the top-left logo. Links like `/?forum=coimbatore` pick a forum directly.
 - **Without a custom domain** (e.g. `*.vercel.app`), leave `FORUM_BASE_DOMAIN` empty: everything
   works on one address and the cookie decides.
 - **With a custom domain:** add the three subdomains (and the bare domain) to the Vercel project,
