@@ -10,6 +10,8 @@ export type ForumId = (typeof FORUM_IDS)[number];
 
 /** Where visitors land until they pick another forum from the top-left menu. */
 export const DEFAULT_FORUM: ForumId = 'tamilnadu';
+/** The state-wide forum: its events page lists every forum's events. */
+export const STATE_FORUM: ForumId = 'tamilnadu';
 /** Cookie that remembers the visitor's forum (set on the parent domain when subdomains are used). */
 export const FORUM_COOKIE = 'forum';
 

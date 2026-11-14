@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { categories, registrationModes } from '#lib/events.ts';
-	import { DEFAULT_FORUM, forumList } from '#lib/forums.ts';
+	import { DEFAULT_FORUM, STATE_FORUM, forumList } from '#lib/forums.ts';
 	import FormBuilder from '#lib/components/admin/FormBuilder.svelte';
 	import DateTimePicker from '#lib/components/admin/DateTimePicker.svelte';
 	import { shrinkImageInput } from '#lib/image.ts';
@@ -80,11 +80,18 @@
 			<span class="field-label">Forum *</span>
 			<select name="forum" required value={values.forum || DEFAULT_FORUM} class="field-input">
 				{#each forumList as f (f.id)}
-					<option value={f.id}>{f.brand.name}</option>
+					<option value={f.id}
+						>{f.id === STATE_FORUM
+							? `${f.brand.name} only`
+							: `${f.brand.name} (+ Tamil Nadu)`}</option
+					>
 				{/each}
 				<option value="all">All three forums</option>
 			</select>
-			<p class="mt-1 text-xs text-stone-muted">Which forum’s site lists this event.</p>
+			<p class="mt-1 text-xs text-stone-muted">
+				Every event is listed on the Tamil Nadu forum; a city event also appears on its city’s
+				forum.
+			</p>
 			{#if errors.forum}<p class="field-error">{errors.forum}</p>{/if}
 		</label>
 
