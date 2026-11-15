@@ -40,6 +40,8 @@ const FIELDS = [
 	'about',
 	'hub',
 	'referrerNumber',
+	'referrerMode',
+	'referrerLabel',
 	'utr'
 ] as const;
 
@@ -76,8 +78,9 @@ export const actions: Actions = {
 		if (upload && 'error' in upload) errors.proof = upload.error;
 		const proof = upload && !('error' in upload) ? upload : null;
 
-		// The referring member's ID (e.g. SEF-2026-0001). It must belong to an active member,
-		// who then earns introduction points once the application is approved.
+		// The referring member's ID (e.g. SEF-2026-0001), typed or filled in by picking them from
+		// the name search. It must belong to an active member, who then earns introduction points
+		// once the application is approved.
 		v.referrerNumber = v.referrerNumber.toUpperCase().replace(/\s+/g, '');
 		let referredById: string | null = null;
 		if (v.referrerNumber) {
@@ -93,7 +96,9 @@ export const actions: Actions = {
 			if (m) referredById = m.id;
 			else
 				errors.referrerNumber =
-					'No active member has this ID. Check it with them, or leave it empty.';
+					v.referrerMode === 'name'
+						? 'That member can’t be chosen right now. Pick again, or leave it empty.'
+						: 'No active member has this ID. Check it with them, search by name, or leave it empty.';
 		}
 
 		if (Object.keys(errors).length) return fail(400, { errors, values: v });

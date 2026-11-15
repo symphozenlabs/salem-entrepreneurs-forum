@@ -7,6 +7,7 @@
 	import { activeForum } from '#lib/forum.svelte.ts';
 	const brand = $derived(activeForum().brand);
 	import IndustryField from '#lib/components/IndustryField.svelte';
+	import ReferrerField from '#lib/components/ReferrerField.svelte';
 	import { shrinkImageInput } from '#lib/image.ts';
 	import PaymentPanel from '#lib/components/PaymentPanel.svelte';
 	import { hubs } from '#lib/network.ts';
@@ -46,14 +47,7 @@
 			placeholder: 'Founder, Managing Director…'
 		},
 		{ name: 'city', label: 'City', autocomplete: 'address-level2', placeholder: 'Salem' },
-		{ name: 'website', label: 'Website', type: 'url', placeholder: 'https://' },
-		{
-			name: 'referrerNumber',
-			label: 'Referrer’s member ID',
-			autocomplete: 'off',
-			placeholder: 'e.g. SEF-2026-0001',
-			hint: 'Optional — the member ID of the member who referred you'
-		}
+		{ name: 'website', label: 'Website', type: 'url', placeholder: 'https://' }
 	];
 </script>
 
@@ -139,6 +133,7 @@
 							</p>{/if}
 					</label>
 				{/each}
+				<ReferrerField {values} error={errors.referrerNumber} />
 				<fieldset class="sm:col-span-2">
 					<legend class="field-label">Your hub *</legend>
 					<div class="mt-2 grid grid-cols-2 gap-3 sm:max-w-md">
