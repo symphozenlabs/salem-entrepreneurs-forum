@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
 	import { page } from '$app/state';
-	import { Handshake, ArrowLeftRight, Users } from '@lucide/svelte';
+	import { Award, Handshake, ArrowLeftRight, Users } from '@lucide/svelte';
+	import { nextReward, pts } from '#lib/loyalty.ts';
 	import { rupees } from '#lib/content.ts';
 	import { eventShortDate } from '#lib/events.ts';
 	import MemberCard from '#lib/components/MemberCard.svelte';
@@ -39,6 +40,7 @@
 			href: '/member/transactions'
 		}
 	]);
+	const next = $derived(data.points ? nextReward(data.points.available) : undefined);
 	const actions = [
 		{
 			href: '/member/connects',
@@ -147,5 +149,22 @@
 				data.me.expiresAt
 			)}
 		</p>
+		{#if data.points}
+			{@const points = data.points}
+			<a
+				href="/member/points"
+				class="mt-6 block rounded-lg bg-ink-900 p-5 text-ivory-100 transition-colors hover:bg-ink-700"
+			>
+				<p class="flex items-center gap-2 text-sm text-ivory-200/70">
+					<Award class="size-4 text-brass-300" /> Loyalty points
+				</p>
+				<p class="display mt-2 text-3xl text-brass-300">{pts(points.balance)} PTS</p>
+				<p class="mt-1 text-sm text-ivory-200/60">
+					{next
+						? `${pts(next.cost - points.available)} to ${next.label}`
+						: 'Every reward is within reach'}
+				</p>
+			</a>
+		{/if}
 	</aside>
 </div>

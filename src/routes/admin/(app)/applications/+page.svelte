@@ -65,7 +65,7 @@
 
 {#if data.applications.length}
 	<ul class="mt-6 space-y-4">
-		{#each data.applications as { app, paymentId, amount, utr, hasProof } (app.id)}
+		{#each data.applications as { app, paymentId, amount, utr, hasProof, referrerName, referrerNumber } (app.id)}
 			<li class="rounded-lg border border-ink-900/10 bg-white p-5 sm:p-6">
 				<div class="flex flex-wrap items-start justify-between gap-4">
 					<div>
@@ -112,9 +112,58 @@
 								>
 							</dd>
 						</div>{/if}
-					{#if app.referredBy}<div>
+					{#if app.referredBy || referrerName || app.status === 'pending'}<div
+							class="sm:col-span-2"
+						>
 							<dt class="text-stone-muted">Referred by</dt>
-							<dd>{app.referredBy}</dd>
+							<dd>
+								{#if referrerName}
+									<span class="font-medium">{referrerName}</span>
+									<span class="text-stone-muted">· {referrerNumber}</span>
+									<span class="text-xs text-emerald-700">
+										{app.status === 'approved'
+											? ' · earned introduction points'
+											: ' · gets introduction points on approval'}</span
+									>
+									{#if app.referredBy && app.referredBy !== referrerNumber}
+										<span class="block text-xs text-stone-muted"
+											>They wrote: “{app.referredBy}”</span
+										>
+									{/if}
+								{:else if app.referredBy}
+									{app.referredBy}
+									<span class="block text-xs text-stone-muted"
+										>Not matched to a member — pick one below to give them introduction points.</span
+									>
+								{:else}
+									<span class="text-stone-muted">—</span>
+								{/if}
+							</dd>
+							{#if app.status === 'pending' && data.members.length}
+								<form
+									method="POST"
+									action="?/referrer"
+									use:enhance={act(app.id)}
+									class="mt-2 flex flex-wrap gap-2"
+								>
+									<input type="hidden" name="id" value={app.id} />
+									<select
+										name="referredById"
+										aria-label="Referring member"
+										class="field-input !mt-0 w-auto max-w-80 !py-1.5 text-sm"
+									>
+										<option value="">No referrer</option>
+										{#each data.members as m (m.id)}
+											<option value={m.id} selected={m.id === app.referredById}
+												>{m.name} · {m.memberNumber}</option
+											>
+										{/each}
+									</select>
+									<button disabled={busy === app.id} class="btn-quiet !px-3 !py-1.5 text-sm"
+										>Save referrer</button
+									>
+								</form>
+							{/if}
 						</div>{/if}
 					{#if app.about}<div class="sm:col-span-2">
 							<dt class="text-stone-muted">About</dt>

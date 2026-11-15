@@ -2,6 +2,7 @@
 	import type { LayoutProps } from './$types';
 	import { page } from '$app/state';
 	import {
+		Award,
 		CalendarDays,
 		IdCard,
 		ReceiptIndianRupee,
@@ -35,6 +36,12 @@
 			badge: data.pendingPayments
 		},
 		{ href: '/admin/events', label: 'Events', icon: CalendarDays },
+		{
+			href: '/admin/points',
+			label: 'Loyalty points',
+			icon: Award,
+			badge: data.pendingRedemptions
+		},
 		{ href: '/admin/enquiries', label: 'Enquiries', icon: Inbox, badge: data.openEnquiries },
 		{ href: '/admin/membership', label: 'Membership & payment', icon: IndianRupee },
 		{ href: '/admin/admins', label: 'Admins & account', icon: ShieldCheck }

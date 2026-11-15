@@ -53,6 +53,12 @@ export const event = pgTable('event', {
 	published: boolean('published').notNull().default(false),
 	/** The forum it belongs to (salem | coimbatore | tamilnadu), or `all` to list it on every forum. */
 	forum: text('forum').notNull().default('salem'),
+	/**
+	 * Loyalty points for members confirmed through our form, added once the event ends:
+	 * meeting | retreat | other, or empty for none.
+	 */
+	loyaltyKind: text('loyalty_kind'),
+	loyaltyPoints: integer('loyalty_points'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true })
 		.notNull()
@@ -124,6 +130,8 @@ export const membershipApplication = pgTable('membership_application', {
 	/** Salem | Coimbatore */
 	hub: text('hub').notNull().default('Salem'),
 	referredBy: text('referred_by'),
+	/** The member who referred them, picked on the form; they earn introduction points on approval. */
+	referredById: text('referred_by_id').references(() => user.id, { onDelete: 'set null' }),
 	/** The forum's site the application came through. Membership itself covers every forum. */
 	forum: text('forum').notNull().default('salem'),
 	/** pending | approved | rejected */
@@ -275,6 +283,67 @@ export const businessTransaction = pgTable(
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [index('txn_receiver_idx').on(t.receiverId), index('txn_giver_idx').on(t.giverId)]
+);
+
+// ---- Loyalty points ------------------------------------------------------------
+
+/**
+ * Every change to a member's points, positive (earned) or negative (redeemed or
+ * corrected). A member's balance is the sum of their entries that aren't voided.
+ */
+export const loyaltyEntry = pgTable(
+	'loyalty_entry',
+	{
+		id: serial('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		/** An activity (see src/lib/loyalty.ts), `adjustment` or `redemption`. */
+		kind: text('kind').notNull(),
+		points: integer('points').notNull(),
+		note: text('note'),
+		/**
+		 * What an automatic entry came from, e.g. "txn:12:giver" or "redemption:4", so it is
+		 * only ever added once. Empty for points an admin awarded by hand.
+		 */
+		source: text('source').unique(),
+		/** The admin who awarded it; empty for automatic entries. */
+		awardedBy: text('awarded_by'),
+		/** When the activity happened. */
+		occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+		/** Set when an admin cancels the entry; it then no longer counts. */
+		voidedAt: timestamp('voided_at', { withTimezone: true }),
+		voidedBy: text('voided_by'),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [index('loyalty_entry_user_idx').on(t.userId)]
+);
+
+/** A member asking to spend points on a reward. Points come off only once an admin approves. */
+export const loyaltyRedemption = pgTable(
+	'loyalty_redemption',
+	{
+		id: serial('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		/** Key of the reward in src/lib/loyalty.ts, with its name and cost as they were then. */
+		reward: text('reward').notNull(),
+		rewardLabel: text('reward_label').notNull(),
+		cost: integer('cost').notNull(),
+		/** The member's note, e.g. which event. */
+		note: text('note'),
+		/** pending | approved | rejected | cancelled */
+		status: text('status').notNull().default('pending'),
+		adminNote: text('admin_note'),
+		reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+		reviewedBy: text('reviewed_by'),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		index('loyalty_redemption_user_idx').on(t.userId),
+		index('loyalty_redemption_status_idx').on(t.status)
+	]
 );
 
 export * from './auth.schema';

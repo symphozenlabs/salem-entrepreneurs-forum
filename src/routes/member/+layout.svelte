@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import {
 		ArrowLeftRight,
+		Award,
 		BadgeCheck,
 		CalendarDays,
 		Handshake,
@@ -25,6 +26,7 @@
 		{ href: '/member/transactions', label: 'Transactions', icon: ArrowLeftRight },
 		{ href: '/member/directory', label: 'Directory', icon: Users },
 		{ href: '/member/events', label: 'Events', icon: CalendarDays },
+		{ href: '/member/points', label: 'Loyalty points', icon: Award },
 		{ href: '/member/profile', label: 'My profile', icon: UserRound },
 		{ href: '/member/membership', label: 'Membership', icon: BadgeCheck }
 	];

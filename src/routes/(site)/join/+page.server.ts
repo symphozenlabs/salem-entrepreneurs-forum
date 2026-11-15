@@ -1,9 +1,15 @@
 import { fail } from '@sveltejs/kit';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { isHub } from '#lib/network.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
-import { membershipApplication, payment, paymentProof, user } from '#lib/server/db/schema.ts';
+import {
+	memberProfile,
+	membershipApplication,
+	payment,
+	paymentProof,
+	user
+} from '#lib/server/db/schema.ts';
 import { getMembership, getPayment } from '#lib/server/settings.ts';
 import { upiQrSvg } from '#lib/server/qr.ts';
 import { utrInUse } from '#lib/server/members.ts';
@@ -33,7 +39,7 @@ const FIELDS = [
 	'website',
 	'about',
 	'hub',
-	'referredBy',
+	'referrerNumber',
 	'utr'
 ] as const;
 
@@ -69,6 +75,26 @@ export const actions: Actions = {
 		const upload = await readImage(data, 'proof', 4);
 		if (upload && 'error' in upload) errors.proof = upload.error;
 		const proof = upload && !('error' in upload) ? upload : null;
+
+		// The referring member's ID (e.g. SEF-2026-0001). It must belong to an active member,
+		// who then earns introduction points once the application is approved.
+		v.referrerNumber = v.referrerNumber.toUpperCase().replace(/\s+/g, '');
+		let referredById: string | null = null;
+		if (v.referrerNumber) {
+			const [m] = await db
+				.select({ id: memberProfile.userId })
+				.from(memberProfile)
+				.where(
+					and(
+						eq(memberProfile.memberNumber, v.referrerNumber),
+						gt(memberProfile.expiresAt, new Date())
+					)
+				);
+			if (m) referredById = m.id;
+			else
+				errors.referrerNumber =
+					'No active member has this ID. Check it with them, or leave it empty.';
+		}
 
 		if (Object.keys(errors).length) return fail(400, { errors, values: v });
 
@@ -118,7 +144,8 @@ export const actions: Actions = {
 					website: website ?? null,
 					about: v.about || null,
 					hub: v.hub,
-					referredBy: v.referredBy || null,
+					referredBy: v.referrerNumber || null,
+					referredById,
 					forum: locals.forum
 				})
 				.returning({ id: membershipApplication.id });

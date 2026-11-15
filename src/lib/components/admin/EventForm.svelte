@@ -6,6 +6,7 @@
 	import FormBuilder from '#lib/components/admin/FormBuilder.svelte';
 	import DateTimePicker from '#lib/components/admin/DateTimePicker.svelte';
 	import { shrinkImageInput } from '#lib/image.ts';
+	import { activities, eventPointKinds } from '#lib/loyalty.ts';
 
 	type Props = {
 		values: Record<string, string>;
@@ -36,6 +37,14 @@
 	let startsAt = $state(untrack(() => values.startsAt ?? ''));
 	// Which registration settings to show; seeded from the event, then the admin's choice.
 	let registration = $state(untrack(() => values.registration || 'whatsapp'));
+	// Loyalty points for members confirmed for this event, added once it ends.
+	let loyaltyKind = $state(untrack(() => values.loyaltyKind ?? ''));
+	let loyaltyPoints = $state(untrack(() => values.loyaltyPoints ?? ''));
+	function chooseLoyalty(kind: string) {
+		loyaltyKind = kind;
+		const preset = kind ? activities[kind as keyof typeof activities].points : 0;
+		if (preset) loyaltyPoints = String(preset);
+	}
 	let preview = $state<string | null>(null);
 	let removeCover = $state(false);
 	let coverNote = $state('');
@@ -361,6 +370,49 @@
 					/>
 					Remove the current image
 				</label>
+			{/if}
+		</div>
+
+		<div class="rounded-lg border border-ink-900/10 bg-white p-5">
+			<label class="block">
+				<span class="field-label">Loyalty points</span>
+				<select
+					name="loyaltyKind"
+					value={loyaltyKind}
+					onchange={(e) => chooseLoyalty(e.currentTarget.value)}
+					class="field-input"
+				>
+					<option value="">No points</option>
+					{#each eventPointKinds as k (k)}
+						<option value={k}
+							>{activities[k].label}{activities[k].points
+								? ` (+${activities[k].points})`
+								: ''}</option
+						>
+					{/each}
+				</select>
+			</label>
+			{#if errors.loyaltyKind}<p class="field-error">{errors.loyaltyKind}</p>{/if}
+			{#if loyaltyKind}
+				<label class="mt-3 block">
+					<span class="field-label">Points per member</span>
+					<input
+						name="loyaltyPoints"
+						type="number"
+						min="1"
+						step="1"
+						required
+						bind:value={loyaltyPoints}
+						class="field-input"
+					/>
+				</label>
+				{#if errors.loyaltyPoints}<p class="field-error">{errors.loyaltyPoints}</p>{/if}
+				<p class="mt-1.5 text-xs text-stone-muted">
+					Members confirmed through the registration form get these points automatically once the
+					event ends.{registration === 'form'
+						? ''
+						: ' This event isn’t using the registration form, so award points by hand instead.'}
+				</p>
 			{/if}
 		</div>
 

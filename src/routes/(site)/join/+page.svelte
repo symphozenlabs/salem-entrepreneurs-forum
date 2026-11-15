@@ -48,9 +48,11 @@
 		{ name: 'city', label: 'City', autocomplete: 'address-level2', placeholder: 'Salem' },
 		{ name: 'website', label: 'Website', type: 'url', placeholder: 'https://' },
 		{
-			name: 'referredBy',
-			label: 'Referred by a member?',
-			placeholder: 'Their name or member number'
+			name: 'referrerNumber',
+			label: 'Referrer’s member ID',
+			autocomplete: 'off',
+			placeholder: 'e.g. SEF-2026-0001',
+			hint: 'Optional — the member ID of the member who referred you'
 		}
 	];
 </script>
