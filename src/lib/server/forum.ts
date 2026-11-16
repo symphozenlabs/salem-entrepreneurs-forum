@@ -15,6 +15,18 @@ function forumFromHost(host: string, base: string): ForumId | null {
 	return Object.values(forums).find((f) => f.subdomain === sub)?.id ?? null;
 }
 
+/**
+ * The forum a visitor lands on when they haven't picked one: an address whose first part is a
+ * forum's short name opens that forum (sef.midtownevents.in → Salem, cef.… → Coimbatore,
+ * tnef.… → Tamil Nadu); any other address opens the default forum.
+ */
+export function landingForum(host: string): ForumId {
+	const label = host.split('.')[0];
+	return (
+		Object.values(forums).find((f) => f.brand.short.toLowerCase() === label)?.id ?? DEFAULT_FORUM
+	);
+}
+
 export function forumUrl(url: URL, id: ForumId, base: string) {
 	const next = new URL(url);
 	next.searchParams.delete('forum');
@@ -42,7 +54,7 @@ export type ForumResolution = { redirect: URL; setCookie?: string } | { forum: F
  *    (on the forum's subdomain when subdomains are in use);
  * 2. the subdomain;
  * 3. the remembered cookie — on the bare parent domain this redirects to the forum's subdomain;
- * 4. otherwise the default forum (Tamil Nadu).
+ * 4. otherwise the address's landing forum (see landingForum).
  */
 export function resolveForum(event: RequestEvent): ForumResolution {
 	const { url, cookies } = event;
@@ -72,5 +84,5 @@ export function resolveForum(event: RequestEvent): ForumResolution {
 		return { forum: saved };
 	}
 
-	return { forum: DEFAULT_FORUM };
+	return { forum: landingForum(host) };
 }

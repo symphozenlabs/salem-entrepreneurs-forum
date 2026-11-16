@@ -8,7 +8,10 @@ import * as salem from './content.ts';
 export const FORUM_IDS = ['tamilnadu', 'coimbatore', 'salem'] as const;
 export type ForumId = (typeof FORUM_IDS)[number];
 
-/** Where visitors land until they pick another forum from the top-left menu. */
+/**
+ * Where visitors land until they pick another forum from the top-left menu, unless the address
+ * names a forum (sef.… lands on Salem; see landingForum in server/forum.ts).
+ */
 export const DEFAULT_FORUM: ForumId = 'tamilnadu';
 /** The state-wide forum: its events page lists every forum's events. */
 export const STATE_FORUM: ForumId = 'tamilnadu';
