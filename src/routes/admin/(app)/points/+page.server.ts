@@ -12,6 +12,7 @@ import {
 	redemptions,
 	rejectRedemption,
 	restoreEntry,
+	setLevel,
 	syncAutoPoints,
 	voidEntry
 } from '#lib/server/loyalty.ts';
@@ -93,6 +94,14 @@ export const actions: Actions = {
 		});
 		if ('error' in r) return fail(400, { error: r.error });
 		return { done: `Points saved for ${r.count} member${r.count === 1 ? '' : 's'}.` };
+	},
+
+	level: async ({ request }) => {
+		const data = await request.formData();
+		const level = String(data.get('level') ?? '');
+		const r = await setLevel(String(data.get('member') ?? ''), level || null);
+		if ('error' in r) return fail(400, { error: r.error });
+		return { done: level ? 'Level set by hand.' : 'Level now follows the member’s points.' };
 	},
 
 	void: async ({ request, locals }) => {

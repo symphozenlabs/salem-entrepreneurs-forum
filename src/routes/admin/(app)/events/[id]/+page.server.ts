@@ -36,8 +36,6 @@ export const load: PageServerLoad = async ({ params }) => {
 		memberFee: e.memberFee?.toString() ?? '',
 		registrationClosesAt: toLocalInput(e.registrationClosesAt),
 		formFields: JSON.stringify(e.formFields ?? []),
-		loyaltyKind: e.loyaltyKind ?? '',
-		loyaltyPoints: e.loyaltyPoints?.toString() ?? '',
 		published: e.published ? 'on' : ''
 	};
 	return { event: e, values };

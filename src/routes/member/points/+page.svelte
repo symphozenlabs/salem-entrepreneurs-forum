@@ -3,7 +3,18 @@
 	import type { PageProps } from './$types';
 	import { Gift } from '@lucide/svelte';
 	import { eventShortDate } from '#lib/events.ts';
-	import { entryKinds, nextReward, pts, redemptionStatus, rewards } from '#lib/loyalty.ts';
+	import {
+		activities,
+		entryKinds,
+		levelFor,
+		levelRange,
+		levels,
+		levelTone,
+		nextReward,
+		pts,
+		redemptionStatus,
+		rewards
+	} from '#lib/loyalty.ts';
 	import Pagination from '#lib/components/Pagination.svelte';
 
 	let { data, form }: PageProps = $props();
@@ -15,11 +26,20 @@
 	);
 	const canRedeem = $derived(s.available >= rewards[0].cost);
 	const stats = $derived([
-		{ label: 'Events attended', value: s.eventsAttended },
-		{ label: 'Referrals given', value: s.referrals },
-		{ label: 'Collaborations', value: s.collaborations },
-		{ label: 'Activities completed', value: s.activitiesCompleted }
+		{ label: 'Meetings & events', value: s.eventsAttended },
+		{ label: 'Group discussions', value: s.discussions },
+		{ label: 'On-time registrations', value: s.onTime },
+		{ label: 'Other activities', value: s.activitiesCompleted }
 	]);
+	const lv = $derived(levelFor(s.levelPoints, s.levelOverride));
+	const levelProgress = $derived(
+		lv.next
+			? Math.max(
+					0,
+					Math.min(100, ((s.levelPoints - lv.level.min) / (lv.next.min - lv.level.min)) * 100)
+				)
+			: 100
+	);
 	const pending = $derived(data.requests.filter((r) => r.status === 'pending'));
 	const answered = $derived(data.requests.filter((r) => r.status !== 'pending'));
 	const tones: Record<string, string> = {
@@ -90,6 +110,41 @@
 			{/if}
 		</section>
 
+		<!-- Level -->
+		<section class="rounded-lg border border-ink-900/10 bg-white p-5 sm:p-6">
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<p class="text-sm text-stone-muted">Member level</p>
+					<p class="mt-1 flex items-center gap-2">
+						<span class="rounded-full px-3 py-1 text-sm font-semibold {levelTone[lv.level.key]}"
+							>{lv.level.label} Member</span
+						>
+					</p>
+					<p class="mt-2 text-sm text-stone-muted">{lv.level.about}</p>
+				</div>
+				<p class="text-right text-sm text-stone-muted">
+					{pts(s.levelPoints)} points earned
+				</p>
+			</div>
+			{#if lv.next}
+				<p class="mt-4 text-sm">
+					{pts(lv.toNext)} points to <strong>{lv.next.label}</strong>
+				</p>
+				<div
+					class="mt-2 h-2 overflow-hidden rounded-full bg-ink-900/10"
+					role="progressbar"
+					aria-valuemin="0"
+					aria-valuemax="100"
+					aria-valuenow={Math.round(levelProgress)}
+					aria-label="Progress to {lv.next.label}"
+				>
+					<div class="h-full rounded-full bg-brass-400" style="width: {levelProgress}%"></div>
+				</div>
+			{:else}
+				<p class="mt-4 text-sm">You’re at the top level.</p>
+			{/if}
+		</section>
+
 		<!-- Activity counts -->
 		<section class="grid grid-cols-2 gap-4 2xl:grid-cols-4">
 			{#each stats as st (st.label)}
@@ -140,8 +195,8 @@
 				<div class="px-5 pb-4"><Pagination pager={data.pager} /></div>
 			{:else}
 				<p class="px-5 py-6 text-sm text-stone-muted">
-					No points yet. You earn points for monthly meetings, retreats, referrals, collaborations,
-					introducing new members and renewing.
+					No points yet. The secretariat adds points for meetings, retreats, intercity meetings,
+					sports meetups, group discussions and more — see “How points work”.
 				</p>
 			{/if}
 		</section>
@@ -193,12 +248,29 @@
 		<section class="rounded-lg border border-ink-900/10 bg-white px-5 py-4 text-sm">
 			<h2 class="font-semibold">How points work</h2>
 			<ul class="mt-2 space-y-1 text-stone-muted">
-				<li>Meetings and retreats you’re confirmed for add points once the event ends.</li>
-				<li>Introducing a new member adds points when their application is approved.</li>
-				<li>Renewing your membership adds points.</li>
-				<li>Confirmed business between members adds referral and collaboration points.</li>
+				<li>The secretariat adds your points after each activity.</li>
 				<li>A redemption holds the points until it’s approved; they come off only then.</li>
 			</ul>
+			<p class="mt-4 text-xs font-semibold tracking-wide text-stone-muted uppercase">Earn</p>
+			<ul class="mt-1 space-y-1">
+				{#each Object.values(activities).filter((a) => a.points) as a (a.label)}
+					<li class="flex justify-between gap-3">
+						<span>{a.label}</span><span class="text-stone-muted tabular-nums">+{pts(a.points)}</span
+						>
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-4 text-xs font-semibold tracking-wide text-stone-muted uppercase">Levels</p>
+			<ul class="mt-1 space-y-1">
+				{#each levels as l (l.key)}
+					<li class="flex justify-between gap-3">
+						<span>{l.label}</span><span class="text-stone-muted tabular-nums">{levelRange(l)}</span>
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-2 text-xs text-stone-muted">
+				Levels go by the points you’ve earned in all, so redeeming doesn’t lower your level.
+			</p>
 		</section>
 	</aside>
 </div>

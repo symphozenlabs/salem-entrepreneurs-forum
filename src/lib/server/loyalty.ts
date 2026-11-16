@@ -2,106 +2,33 @@ import { and, asc, desc, eq, gt, ilike, inArray, isNull, or, sql } from 'drizzle
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '#lib/server/db/index.ts';
 import {
-	businessTransaction,
 	event,
 	eventRegistration,
 	loyaltyEntry,
 	loyaltyRedemption,
 	memberProfile,
-	membershipApplication,
-	payment,
 	user
 } from '#lib/server/db/schema.ts';
 import { autoConfirmTransactions } from '#lib/server/network.ts';
-import { activities, isActivity, rewardByKey } from '#lib/loyalty.ts';
+import { activities, isActivity, isLevelKey, isOnce, rewardByKey } from '#lib/loyalty.ts';
 
 /** Rows from `db.execute`, whichever driver ran it. */
 const rowsOf = (r: unknown) => (Array.isArray(r) ? r : ((r as { rows?: unknown[] }).rows ?? []));
 
 const live = isNull(loyaltyEntry.voidedAt);
 const sumPoints = sql<number>`coalesce(sum(${loyaltyEntry.points}), 0)::int`;
-const fromEvent = sql`coalesce(${loyaltyEntry.source} like 'event:%', false)`;
+const levelPoints = sql<number>`coalesce(sum(${loyaltyEntry.points}) filter (where ${loyaltyEntry.kind} <> 'redemption'), 0)::int`;
 const countOf = (...kinds: string[]) =>
 	sql<number>`(count(*) filter (where ${inArray(loyaltyEntry.kind, kinds)}))::int`;
 
-// ---- Automatic points -----------------------------------------------------------
+// ---- Housekeeping ---------------------------------------------------------------
 
 /**
- * Adds every automatic award that isn't there yet, each exactly once (keyed by `source`):
- * - confirmed business: the referrer gets a business-referral award, and both sides of
- *   direct business get a collaboration award
- * - events with a points setting, once they end: each member confirmed for them
- * - approved applications: the member picked as referrer gets an introduction award
- * - verified renewals: the member gets a renewal award
- * Runs whenever points are read, like the auto-confirmation of business records. An award
- * an admin cancels stays cancelled, because its source is still taken.
+ * Runs whenever points are read. Points are only ever awarded by an admin now, so this just
+ * settles business records that are due to confirm themselves.
  */
 export async function syncAutoPoints() {
 	await autoConfirmTransactions();
-	const t = businessTransaction;
-	const other = alias(user, 'other');
-	const notYet = (source: ReturnType<typeof sql>) =>
-		sql`not exists (select 1 from ${loyaltyEntry} where ${loyaltyEntry.source} = ${source})`;
-	const when = sql`coalesce(${t.respondedAt}, ${t.createdAt})`;
-
-	const referral = sql`'txn:' || ${t.id} || ':referral'`;
-	const giver = sql`'txn:' || ${t.id} || ':giver'`;
-	const receiver = sql`'txn:' || ${t.id} || ':receiver'`;
-	const attended = sql`'event:' || ${event.id} || ':' || ${eventRegistration.userId}`;
-	const a = membershipApplication;
-	const introduced = sql`'application:' || ${a.id} || ':intro'`;
-	const renewed = sql`'payment:' || ${payment.id} || ':renewal'`;
-	// `not exists` keeps the id sequence from being spent on rows that already exist;
-	// `on conflict` covers two requests adding the same entry at once.
-	await Promise.all([
-		db.execute(sql`
-			insert into ${loyaltyEntry} (user_id, kind, points, note, source, occurred_at)
-			select ${t.giverId}, 'referral', ${activities.referral.points}::int,
-				'Referral business for ' || ${other.name}, ${referral}, ${when}
-			from ${t} join ${user} as other on ${other.id} = ${t.receiverId}
-			where ${t.status} = 'confirmed' and ${t.kind} = 'referral' and ${notYet(referral)}
-			on conflict (source) do nothing`),
-		db.execute(sql`
-			insert into ${loyaltyEntry} (user_id, kind, points, note, source, occurred_at)
-			select ${t.giverId}, 'collaboration', ${activities.collaboration.points}::int,
-				'Business with ' || ${other.name}, ${giver}, ${when}
-			from ${t} join ${user} as other on ${other.id} = ${t.receiverId}
-			where ${t.status} = 'confirmed' and ${t.kind} = 'direct' and ${notYet(giver)}
-			union all
-			select ${t.receiverId}, 'collaboration', ${activities.collaboration.points}::int,
-				'Business with ' || ${other.name}, ${receiver}, ${when}
-			from ${t} join ${user} as other on ${other.id} = ${t.giverId}
-			where ${t.status} = 'confirmed' and ${t.kind} = 'direct' and ${notYet(receiver)}
-			on conflict (source) do nothing`),
-		db.execute(sql`
-			insert into ${loyaltyEntry} (user_id, kind, points, note, source, occurred_at)
-			select distinct on (${event.id}, ${eventRegistration.userId})
-				${eventRegistration.userId}, ${event.loyaltyKind}, ${event.loyaltyPoints}, ${event.title},
-				${attended}, ${event.startsAt}
-			from ${eventRegistration}
-				join ${event} on ${event.id} = ${eventRegistration.eventId}
-				join ${memberProfile} on ${memberProfile.userId} = ${eventRegistration.userId}
-			where ${eventRegistration.status} = 'confirmed'
-				and ${event.loyaltyKind} is not null and ${event.loyaltyPoints} > 0
-				and coalesce(${event.endsAt}, ${event.startsAt}) < now()
-				and ${notYet(attended)}
-			on conflict (source) do nothing`),
-		db.execute(sql`
-			insert into ${loyaltyEntry} (user_id, kind, points, note, source, occurred_at)
-			select ${a.referredById}, 'introduction', ${activities.introduction.points}::int,
-				'Introduced ' || ${a.name}, ${introduced}, coalesce(${a.reviewedAt}, ${a.createdAt})
-			from ${a} join ${memberProfile} on ${memberProfile.userId} = ${a.referredById}
-			where ${a.status} = 'approved' and ${notYet(introduced)}
-			on conflict (source) do nothing`),
-		db.execute(sql`
-			insert into ${loyaltyEntry} (user_id, kind, points, note, source, occurred_at)
-			select ${payment.userId}, 'renewal', ${activities.renewal.points}::int,
-				'Membership renewed', ${renewed}, coalesce(${payment.reviewedAt}, ${payment.createdAt})
-			from ${payment} join ${memberProfile} on ${memberProfile.userId} = ${payment.userId}
-			where ${payment.purpose} = 'renewal' and ${payment.status} = 'verified'
-				and ${notYet(renewed)}
-			on conflict (source) do nothing`)
-	]);
 }
 
 // ---- A member's points ----------------------------------------------------------
@@ -111,39 +38,52 @@ export type PointsSummary = {
 	balance: number;
 	/** All points ever earned. */
 	earned: number;
+	/** What decides the member's level: everything except redemptions. */
+	levelPoints: number;
+	/** The level an admin set by hand, if any. */
+	levelOverride: string | null;
 	redeemed: number;
 	/** Points asked for in requests still waiting for an admin. */
 	held: number;
 	/** What the member can still ask to redeem. */
 	available: number;
 	eventsAttended: number;
-	referrals: number;
-	collaborations: number;
-	/** Member introductions, renewals and other activities. */
+	discussions: number;
+	onTime: number;
+	/** Induction, profile and other activities. */
 	activitiesCompleted: number;
 };
 
 export async function pointsSummary(userId: string): Promise<PointsSummary> {
-	const [[s], [h]] = await Promise.all([
+	const [[s], [h], [p]] = await Promise.all([
 		db
 			.select({
 				balance: sumPoints,
 				earned: sql<number>`coalesce(sum(${loyaltyEntry.points}) filter (where ${loyaltyEntry.points} > 0), 0)::int`,
 				redeemed: sql<number>`coalesce(-sum(${loyaltyEntry.points}) filter (where ${loyaltyEntry.kind} = 'redemption'), 0)::int`,
-				// Any award from an event counts as attending it, whatever its points kind.
-				eventsAttended: sql<number>`(count(*) filter (where ${inArray(loyaltyEntry.kind, ['meeting', 'retreat'])} or ${fromEvent}))::int`,
-				referrals: countOf('referral'),
-				collaborations: countOf('collaboration'),
-				activitiesCompleted: sql<number>`(count(*) filter (where ${inArray(loyaltyEntry.kind, ['introduction', 'other', 'renewal'])} and not ${fromEvent}))::int`
+				levelPoints,
+				eventsAttended: countOf('meeting', 'retreat', 'intercity', 'sports'),
+				discussions: countOf('discussion'),
+				onTime: countOf('on-time'),
+				activitiesCompleted: countOf('induction', 'profile', 'other')
 			})
 			.from(loyaltyEntry)
 			.where(and(eq(loyaltyEntry.userId, userId), live)),
 		db
 			.select({ held: sql<number>`coalesce(sum(${loyaltyRedemption.cost}), 0)::int` })
 			.from(loyaltyRedemption)
-			.where(and(eq(loyaltyRedemption.userId, userId), eq(loyaltyRedemption.status, 'pending')))
+			.where(and(eq(loyaltyRedemption.userId, userId), eq(loyaltyRedemption.status, 'pending'))),
+		db
+			.select({ level: memberProfile.level })
+			.from(memberProfile)
+			.where(eq(memberProfile.userId, userId))
 	]);
-	return { ...s, held: h.held, available: s.balance - h.held };
+	return {
+		...s,
+		held: h.held,
+		available: s.balance - h.held,
+		levelOverride: p?.level ?? null
+	};
 }
 
 /** A member's own history, newest first; cancelled entries are left out. */
@@ -250,7 +190,8 @@ export async function memberBalances(q: string) {
 				name: user.name,
 				memberNumber: memberProfile.memberNumber,
 				business: memberProfile.business,
-				hub: memberProfile.hub
+				hub: memberProfile.hub,
+				levelOverride: memberProfile.level
 			})
 			.from(memberProfile)
 			.innerJoin(user, eq(user.id, memberProfile.userId))
@@ -271,6 +212,7 @@ export async function memberBalances(q: string) {
 				balance: sumPoints,
 				earned: sql<number>`coalesce(sum(${loyaltyEntry.points}) filter (where ${loyaltyEntry.points} > 0), 0)::int`,
 				redeemed: sql<number>`coalesce(-sum(${loyaltyEntry.points}) filter (where ${loyaltyEntry.kind} = 'redemption'), 0)::int`,
+				levelPoints,
 				lastAt: sql<Date | null>`max(${loyaltyEntry.occurredAt})`
 			})
 			.from(loyaltyEntry)
@@ -295,6 +237,7 @@ export async function memberBalances(q: string) {
 				balance: t?.balance ?? 0,
 				earned: t?.earned ?? 0,
 				redeemed: t?.redeemed ?? 0,
+				levelPoints: t?.levelPoints ?? 0,
 				held: heldBy.get(m.id) ?? 0,
 				lastAt: t?.lastAt ? new Date(t.lastAt) : null
 			};
@@ -435,6 +378,19 @@ export async function awardPoints(
 		.from(memberProfile)
 		.where(inArray(memberProfile.userId, ids));
 	if (members.length !== ids.length) return { error: 'One of those members no longer exists.' };
+	if (isOnce(input.kind)) {
+		const already = await db
+			.select({ name: user.name })
+			.from(loyaltyEntry)
+			.innerJoin(user, eq(user.id, loyaltyEntry.userId))
+			.where(and(inArray(loyaltyEntry.userId, ids), eq(loyaltyEntry.kind, input.kind), live));
+		if (already.length) {
+			const names = [...new Set(already.map((a) => a.name))].join(', ');
+			return {
+				error: `${activities[input.kind as keyof typeof activities].label} counts once per member — already given to ${names}.`
+			};
+		}
+	}
 	await db.insert(loyaltyEntry).values(
 		ids.map((userId) => ({
 			userId,
@@ -446,6 +402,17 @@ export async function awardPoints(
 		}))
 	);
 	return { ok: true, count: ids.length };
+}
+
+/** Sets a member's level by hand, or (with null) goes back to the level their points reach. */
+export async function setLevel(userId: string, level: string | null) {
+	if (level !== null && !isLevelKey(level)) return { error: 'Choose a level.' };
+	const updated = await db
+		.update(memberProfile)
+		.set({ level })
+		.where(eq(memberProfile.userId, userId))
+		.returning({ id: memberProfile.userId });
+	return updated.length ? { ok: true } : { error: 'That member no longer exists.' };
 }
 
 /** Cancels an award. Redemptions can't be cancelled here: they follow their request. */
