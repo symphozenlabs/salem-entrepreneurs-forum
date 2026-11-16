@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import { REFERRAL_PERCENT, rupees } from '#lib/content.ts';
+	import { isLifetime } from '#lib/membership.ts';
 
 	let { data, form }: PageProps = $props();
 	let busy = $state<'fee' | 'payment' | null>(null);
@@ -81,7 +82,9 @@
 		<p class="eyebrow text-brass-300">Preview</p>
 		<p class="mt-5 flex items-baseline gap-2">
 			<span class="display text-brass-gradient text-5xl">{valid ? rupees(feeNumber) : '—'}</span>
-			<span class="text-sm text-ivory-200/60">/ {period}</span>
+			<span class="text-sm text-ivory-200/60"
+				>{isLifetime(period) ? 'one-time · lifetime' : `/ ${period}`}</span
+			>
 		</p>
 		<p class="mt-6 border-t border-ivory-100/10 pt-4 text-sm text-ivory-200/70">
 			Referral reward:
