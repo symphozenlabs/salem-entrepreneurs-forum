@@ -5,6 +5,7 @@ import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import {
+	applicationPhoto,
 	memberProfile,
 	membershipApplication,
 	payment,
@@ -30,6 +31,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			amount: payment.amount,
 			utr: payment.utr,
 			hasProof: sql<boolean>`${paymentProof.paymentId} is not null`,
+			hasPhoto: sql<boolean>`${applicationPhoto.applicationId} is not null`,
 			/** The member picked as referrer, who earns introduction points on approval. */
 			referrerName: referrer.name,
 			referrerNumber: referrerProfile.memberNumber
@@ -39,6 +41,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		.leftJoin(referrerProfile, eq(referrerProfile.userId, membershipApplication.referredById))
 		.leftJoin(payment, eq(payment.applicationId, membershipApplication.id))
 		.leftJoin(paymentProof, eq(paymentProof.paymentId, payment.id))
+		.leftJoin(applicationPhoto, eq(applicationPhoto.applicationId, membershipApplication.id))
 		.where(eq(membershipApplication.status, show))
 		.orderBy(
 			show === 'pending' ? membershipApplication.createdAt : desc(membershipApplication.createdAt)

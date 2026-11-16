@@ -2,6 +2,8 @@ import { randomInt } from 'node:crypto';
 import { and, count, eq, ne, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import {
+	applicationPhoto,
+	memberPhoto,
 	memberProfile,
 	membershipApplication,
 	payment,
@@ -136,6 +138,7 @@ export async function approveApplication(id: number, adminId: string) {
 					website: app.website,
 					about: app.about,
 					hub: app.hub,
+					instagram: app.instagram,
 					joinedAt: now,
 					expiresAt: addMonths(now, periodMonths(period))
 				});
@@ -149,6 +152,12 @@ export async function approveApplication(id: number, adminId: string) {
 			.update(membershipApplication)
 			.set({ userId: account.id })
 			.where(eq(membershipApplication.id, id));
+		// The photo sent with the application becomes the member's profile photo.
+		const [photo] = await db
+			.select({ mime: applicationPhoto.mime, data: applicationPhoto.data })
+			.from(applicationPhoto)
+			.where(eq(applicationPhoto.applicationId, id));
+		if (photo) await db.insert(memberPhoto).values({ userId: account.id, ...photo });
 		await db
 			.update(payment)
 			.set({ status: 'verified', reviewedAt: now, reviewedBy: adminId, userId: account.id })

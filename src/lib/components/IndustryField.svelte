@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { forumList } from '#lib/forums.ts';
-	// Every forum's industries: membership is shared across the forums.
-	const industries = [
-		...new Map(forumList.flatMap((f) => f.industries).map((i) => [i.name, i])).values()
-	];
+	import { categories } from '#lib/categories.ts';
 
-	/** `value` is the saved industry: one of the listed ones, or whatever was typed under "Other". */
+	/**
+	 * The member's business category (form field `industry`, stored in the `industry` columns):
+	 * one of the listed categories, or whatever was typed under "Other". Earlier members may
+	 * have an older industry name, which shows under "Other" until they pick a category.
+	 */
 	let { value = '', error = '' }: { value?: string; error?: string } = $props();
 
-	const listed = industries.map((i) => i.name);
+	const listed: readonly string[] = categories;
 	const initial = untrack(() => value);
 	let choice = $state(!initial ? '' : listed.includes(initial) ? initial : 'Other');
 	let other = $state(listed.includes(initial) ? '' : initial);
@@ -17,7 +17,7 @@
 
 <div class="grid gap-x-8 gap-y-6 sm:grid-cols-2">
 	<label class="block {choice === 'Other' ? '' : 'sm:col-span-2'}">
-		<span class="field-label">Industry *</span>
+		<span class="field-label">Category *</span>
 		<select name="industry" required bind:value={choice} class="field-input">
 			<option value="" disabled>Choose one</option>
 			{#each listed as name (name)}<option>{name}</option>{/each}
@@ -26,7 +26,7 @@
 	</label>
 	{#if choice === 'Other'}
 		<label class="block">
-			<span class="field-label">Your industry *</span>
+			<span class="field-label">Your category *</span>
 			<!-- svelte-ignore a11y_autofocus -->
 			<input
 				name="industryOther"

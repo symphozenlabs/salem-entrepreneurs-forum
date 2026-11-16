@@ -3,7 +3,7 @@
 	import { rupees } from '#lib/content.ts';
 	import { activeForum } from '#lib/forum.svelte.ts';
 	const contact = $derived(activeForum().contact);
-	import { gpayLinks, upiLink, type PaymentInfo } from '#lib/membership.ts';
+	import { gpayLinks, isLifetime, upiLink, type PaymentInfo } from '#lib/membership.ts';
 
 	type Props = {
 		payment: PaymentInfo;
@@ -47,7 +47,9 @@
 	<p class="eyebrow text-brass-300">Pay by UPI</p>
 	<p class="mt-4 flex items-baseline gap-2">
 		<span class="display text-brass-gradient text-5xl">{rupees(amount)}</span>
-		{#if period}<span class="text-sm text-ivory-200/60">/ {period}</span>{/if}
+		{#if period && isLifetime(period)}<span class="text-sm text-ivory-200/60"
+				>one-time · lifetime</span
+			>{:else if period}<span class="text-sm text-ivory-200/60">/ {period}</span>{/if}
 	</p>
 
 	{#if payment.upiId}

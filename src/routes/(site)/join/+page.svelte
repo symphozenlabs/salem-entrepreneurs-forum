@@ -14,7 +14,8 @@
 
 	let { data, form }: PageProps = $props();
 	let busy = $state(false);
-	let proofNote = $state('');
+	let photoNote = $state('');
+	let photoPreview = $state<string | null>(null);
 	let section: HTMLElement;
 
 	const values = $derived((form?.values ?? {}) as Record<string, string>);
@@ -47,7 +48,14 @@
 			placeholder: 'Founder, Managing Director…'
 		},
 		{ name: 'city', label: 'City', autocomplete: 'address-level2', placeholder: 'Salem' },
-		{ name: 'website', label: 'Website', type: 'url', placeholder: 'https://' }
+		{ name: 'website', label: 'Website', type: 'url', placeholder: 'https://' },
+		{
+			name: 'instagram',
+			label: 'Instagram',
+			required: true,
+			placeholder: 'instagram.com/yourbusiness or @yourbusiness',
+			hint: 'Your business or personal Instagram profile'
+		}
 	];
 </script>
 
@@ -55,7 +63,7 @@
 	<title>Apply for membership — {brand.name}</title>
 	<meta
 		name="description"
-		content="Apply to join the {brand.name}. Pay the annual fee by UPI and the secretariat verifies it within a day."
+		content="Apply to join the {brand.name}. Pay the one-time lifetime membership fee by UPI and the secretariat verifies it within a day."
 	/>
 </svelte:head>
 
@@ -64,7 +72,10 @@
 		<p class="eyebrow text-brass-300">Membership</p>
 		<h1 class="display mt-6 text-[clamp(3rem,7vw,6rem)]">Apply for your seat.</h1>
 		<ol class="mt-10 grid max-w-3xl gap-4 text-sm text-ivory-200/75 sm:grid-cols-3">
-			<li><span class="display mr-2 text-2xl text-brass-400">1</span>Pay the annual fee by UPI</li>
+			<li>
+				<span class="display mr-2 text-2xl text-brass-400">1</span>Pay the one-time membership fee
+				by UPI
+			</li>
 			<li>
 				<span class="display mr-2 text-2xl text-brass-400">2</span>Fill in this form with the
 				transaction ID
@@ -136,7 +147,7 @@
 				<ReferrerField {values} error={errors.referrerNumber} />
 				<fieldset class="sm:col-span-2">
 					<legend class="field-label">Your hub *</legend>
-					<div class="mt-2 grid grid-cols-2 gap-3 sm:max-w-md">
+					<div class="mt-2 grid grid-cols-2 gap-3 sm:max-w-xl sm:grid-cols-3">
 						{#each hubs as h (h)}
 							<label
 								class="flex cursor-pointer items-center gap-3 rounded-md border border-ink-900/15 bg-white px-4 py-3 text-sm has-[:checked]:border-brass-500 has-[:checked]:bg-brass-200/30"
@@ -158,6 +169,42 @@
 				<div class="sm:col-span-2">
 					<IndustryField value={values.industry} error={errors.industry} />
 				</div>
+				<div class="sm:col-span-2">
+					<span class="field-label">Your photo</span>
+					<div class="mt-2 flex items-center gap-5">
+						<div
+							class="grid size-20 shrink-0 place-items-center overflow-hidden rounded-full bg-ink-900/5 ring-1 ring-ink-900/10"
+						>
+							{#if photoPreview}
+								<img src={photoPreview} alt="" class="h-full w-full object-cover" />
+							{:else}
+								<span class="text-2xl text-ink-900/30" aria-hidden="true">◎</span>
+							{/if}
+						</div>
+						<label class="block min-w-0 flex-1">
+							<span class="sr-only">Profile photo</span>
+							<input
+								name="photo"
+								type="file"
+								accept="image/jpeg,image/png,image/webp"
+								onchange={async (e) => {
+									const input = e.currentTarget;
+									photoNote = (await shrinkImageInput(input, 800))?.note ?? '';
+									const file = input.files?.[0];
+									if (photoPreview) URL.revokeObjectURL(photoPreview);
+									photoPreview = file ? URL.createObjectURL(file) : null;
+								}}
+								class="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-ink-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-ivory-50"
+							/>
+							{#if errors.photo}<p class="field-error">{errors.photo}</p>{:else}<p
+									class="mt-1.5 text-xs text-stone-muted"
+								>
+									{photoNote ||
+										'A clear photo of you, shown on your member profile. JPEG, PNG or WebP.'}
+								</p>{/if}
+						</label>
+					</div>
+				</div>
 				<label class="block sm:col-span-2">
 					<span class="field-label">About your business</span>
 					<textarea
@@ -171,7 +218,7 @@
 				</label>
 
 				<h2 class="display mt-6 text-3xl text-ink-900 sm:col-span-2">Your payment</h2>
-				<label class="block">
+				<label class="block sm:col-span-2 sm:max-w-md">
 					<span class="field-label">UPI transaction ID (UTR) *</span>
 					<input
 						name="utr"
@@ -186,24 +233,6 @@
 							class="mt-1.5 text-xs text-stone-muted"
 						>
 							On the payment receipt in your UPI app
-						</p>{/if}
-				</label>
-				<label class="block">
-					<span class="field-label"
-						>Payment screenshot <span class="font-normal text-stone-muted">(optional)</span></span
-					>
-					<input
-						name="proof"
-						type="file"
-						accept="image/jpeg,image/png,image/webp"
-						onchange={async (e) =>
-							(proofNote = (await shrinkImageInput(e.currentTarget, 1400))?.note ?? '')}
-						class="mt-1.5 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-ink-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-ivory-50"
-					/>
-					{#if errors.proof}<p class="field-error">{errors.proof}</p>{:else if proofNote}<p
-							class="mt-1.5 text-xs text-stone-muted"
-						>
-							{proofNote}
 						</p>{/if}
 				</label>
 
@@ -223,7 +252,13 @@
 						required
 						class="mt-0.5 rounded border-ink-900/30 text-ink-900"
 					/>
-					I confirm these details are correct and that I’ve paid the membership fee by UPI.
+					<span>
+						I confirm these details are correct and that I’ve paid the membership fee by UPI. I
+						understand the fee is a one-time lifetime fee and is non-refundable.
+						<span class="mt-1 block text-xs text-stone-muted"
+							>The membership fee is non-refundable once paid.</span
+						>
+					</span>
 				</label>
 				{#if errors.consent}<p class="field-error sm:col-span-2">{errors.consent}</p>{/if}
 				{#if errors.form}<p class="field-error sm:col-span-2" role="alert">{errors.form}</p>{/if}
@@ -245,7 +280,7 @@
 				<PaymentPanel
 					payment={data.payment}
 					amount={data.membership.fee}
-					period={data.membership.period}
+					period="Lifetime"
 					note={data.note}
 					qrSvg={data.qrSvg}
 				/>

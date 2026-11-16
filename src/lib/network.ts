@@ -2,7 +2,7 @@
 // the member area and the admin.
 
 /** The forum's chapters. Every member belongs to one. */
-export const hubs = ['Salem', 'Coimbatore'] as const;
+export const hubs = ['Salem', 'Coimbatore', 'Tamil Nadu'] as const;
 export type Hub = (typeof hubs)[number];
 export const isHub = (v: unknown): v is Hub => hubs.includes(v as Hub);
 
