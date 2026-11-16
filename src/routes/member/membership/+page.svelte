@@ -3,7 +3,7 @@
 	import type { PageProps } from './$types';
 	import { rupees } from '#lib/content.ts';
 	import { eventShortDate } from '#lib/events.ts';
-	import { statusLabel } from '#lib/membership.ts';
+	import { isLifetime, statusLabel } from '#lib/membership.ts';
 	import { shrinkImageInput } from '#lib/image.ts';
 	import PaymentPanel from '#lib/components/PaymentPanel.svelte';
 
@@ -62,8 +62,11 @@
 				</p>
 			{:else}
 				<p class="mt-2 text-sm text-stone-muted">
-					Pay {rupees(data.membership.fee)} by UPI, then enter the transaction ID. Renewing early adds
-					a full {data.membership.period} to your current end date.
+					Pay {rupees(data.membership.fee)} by UPI, then enter the transaction ID. {isLifetime(
+						data.membership.period
+					)
+						? 'Membership is now a one-time fee, so this makes yours lifetime.'
+						: `Renewing early adds a full ${data.membership.period} to your current end date.`}
 				</p>
 				<form
 					method="POST"
