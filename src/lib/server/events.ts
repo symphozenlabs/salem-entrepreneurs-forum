@@ -4,7 +4,6 @@ import { db } from '#lib/server/db/index.ts';
 import { event, eventCover, eventRegistration } from '#lib/server/db/schema.ts';
 import { categories, fromLocalInput, registrationModes, type PublicEvent } from '#lib/events.ts';
 import { cleanFields } from '#lib/forms.ts';
-import { isEventPointKind } from '#lib/loyalty.ts';
 import { readImage } from '#lib/server/uploads.ts';
 
 const endOf = sql`coalesce(${event.endsAt}, ${event.startsAt})`;
@@ -125,9 +124,7 @@ export async function eventById(id: number) {
 		.select({
 			...columns,
 			published: event.published,
-			formFields: event.formFields,
-			loyaltyKind: event.loyaltyKind,
-			loyaltyPoints: event.loyaltyPoints
+			formFields: event.formFields
 		})
 		.from(event)
 		.leftJoin(eventCover, eq(eventCover.eventId, event.id))
@@ -247,17 +244,6 @@ export async function parseEventForm(data: FormData) {
 	if (strict && cleaned.error) errors.formFields = cleaned.error;
 	formFields = cleaned.error ? [] : cleaned.fields;
 
-	// Loyalty points for confirmed members, added once the event ends.
-	const loyaltyRaw = str(data, 'loyaltyKind');
-	const loyaltyKind = isEventPointKind(loyaltyRaw) ? loyaltyRaw : null;
-	const loyaltyPoints = loyaltyKind ? Number(str(data, 'loyaltyPoints')) : null;
-	if (loyaltyRaw && !loyaltyKind) errors.loyaltyKind = 'Choose what attending earns.';
-	if (
-		loyaltyKind &&
-		(!Number.isInteger(loyaltyPoints) || loyaltyPoints! < 1 || loyaltyPoints! > 100_000)
-	)
-		errors.loyaltyPoints = 'Enter the points as a whole number.';
-
 	let cover: CoverChange = null;
 	const image = await readImage(data, 'cover');
 	if (image && 'error' in image) errors.cover = image.error;
@@ -287,8 +273,6 @@ export async function parseEventForm(data: FormData) {
 		registrationClosesAt,
 		formFields,
 		forum: forumPicked,
-		loyaltyKind,
-		loyaltyPoints,
 		published: data.get('published') === 'on'
 	};
 	return { ok: true as const, values, cover };

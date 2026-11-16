@@ -141,11 +141,6 @@
 								{#if referrerName}
 									<span class="font-medium">{referrerName}</span>
 									<span class="text-stone-muted">· {referrerNumber}</span>
-									<span class="text-xs text-emerald-700">
-										{app.status === 'approved'
-											? ' · earned introduction points'
-											: ' · gets introduction points on approval'}</span
-									>
 									{#if app.referredBy && app.referredBy !== referrerNumber}
 										<span class="block text-xs text-stone-muted"
 											>They wrote: “{app.referredBy}”</span
@@ -154,7 +149,7 @@
 								{:else if app.referredBy}
 									{app.referredBy}
 									<span class="block text-xs text-stone-muted"
-										>Not matched to a member — pick one below to give them introduction points.</span
+										>Not matched to a member — pick one below.</span
 									>
 								{:else}
 									<span class="text-stone-muted">—</span>

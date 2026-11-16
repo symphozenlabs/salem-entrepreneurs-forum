@@ -84,8 +84,7 @@ export const actions: Actions = {
 		const photo = upload && !('error' in upload) ? upload : null;
 
 		// The referring member's ID (e.g. SEF-2026-0001), typed or filled in by picking them from
-		// the name search. It must belong to an active member, who then earns introduction points
-		// once the application is approved.
+		// the name search. It must belong to an active member.
 		v.referrerNumber = v.referrerNumber.toUpperCase().replace(/\s+/g, '');
 		let referredById: string | null = null;
 		if (v.referrerNumber) {

@@ -3,7 +3,17 @@
 	import type { PageProps } from './$types';
 	import { Award, Check, Search, X } from '@lucide/svelte';
 	import { eventShortDate } from '#lib/events.ts';
-	import { activities, entryKinds, pts, redemptionStatus, type Activity } from '#lib/loyalty.ts';
+	import {
+		activities,
+		entryKinds,
+		levelFor,
+		levelRange,
+		levels,
+		levelTone,
+		pts,
+		redemptionStatus,
+		type Activity
+	} from '#lib/loyalty.ts';
 	import { hubs } from '#lib/network.ts';
 	import Pagination from '#lib/components/Pagination.svelte';
 
@@ -77,27 +87,42 @@
 <p class="eyebrow text-brass-600">Loyalty points</p>
 <h1 class="display mt-2 text-4xl">Loyalty points</h1>
 <p class="mt-2 max-w-2xl text-sm text-stone-muted">
-	Approve members’ redemptions, see every point given, and award points by hand when needed. Points
-	are added automatically for:
+	Approve members’ redemptions, see every point given, and award points. Only admins award points —
+	nothing is added automatically.
 </p>
-<ul class="mt-2 max-w-2xl list-disc space-y-0.5 pl-5 text-sm text-stone-muted">
-	<li>
-		<strong class="text-ink-800">Events</strong> with a loyalty-points setting — every member confirmed
-		through the registration form, once the event ends
-	</li>
-	<li>
-		<strong class="text-ink-800">Introductions</strong> — the member picked as referrer, when you
-		approve the application (+{activities.introduction.points})
-	</li>
-	<li>
-		<strong class="text-ink-800">Renewals</strong> — when a renewal payment is verified (+{activities
-			.renewal.points})
-	</li>
-	<li>
-		<strong class="text-ink-800">Business</strong> — confirmed referral business (+{activities
-			.referral.points} to the referrer) and direct business (+{activities.collaboration.points} each)
-	</li>
-</ul>
+<details class="mt-4 max-w-3xl rounded-lg border border-ink-900/10 bg-white text-sm">
+	<summary class="cursor-pointer px-5 py-3 font-semibold">Points rules and member levels</summary>
+	<div class="grid gap-6 border-t border-ink-900/10 px-5 py-4 sm:grid-cols-2">
+		<div>
+			<p class="text-xs font-semibold tracking-wide text-stone-muted uppercase">Earning</p>
+			<ul class="mt-2 space-y-1">
+				{#each Object.values(activities).filter((a) => a.points) as a (a.label)}
+					<li class="flex justify-between gap-3">
+						<span>{a.label}{'once' in a ? ' (once)' : ''}</span>
+						<span class="text-stone-muted tabular-nums">+{pts(a.points)}</span>
+					</li>
+				{/each}
+			</ul>
+		</div>
+		<div>
+			<p class="text-xs font-semibold tracking-wide text-stone-muted uppercase">Levels</p>
+			<ul class="mt-2 space-y-1">
+				{#each levels as l (l.key)}
+					<li class="flex justify-between gap-3">
+						<span class="rounded-full px-2 py-0.5 text-xs font-semibold {levelTone[l.key]}"
+							>{l.label}</span
+						>
+						<span class="text-stone-muted tabular-nums">{levelRange(l)}</span>
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-2 text-xs text-stone-muted">
+				Levels follow the points a member has earned in all — redeeming doesn’t lower them. You can
+				set a member’s level by hand under Members.
+			</p>
+		</div>
+	</div>
+</details>
 
 {#if form?.done}
 	<p class="mt-6 rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">
@@ -261,10 +286,11 @@
 	</form>
 
 	<div class="mt-4 overflow-x-auto rounded-lg border border-ink-900/10 bg-white">
-		<table class="w-full min-w-[40rem] text-sm">
+		<table class="w-full min-w-[52rem] text-sm">
 			<thead class="text-left text-xs tracking-wide text-stone-muted uppercase">
 				<tr class="border-b border-ink-900/10">
 					<th class="px-5 py-3 font-semibold">Member</th>
+					<th class="px-5 py-3 font-semibold">Level</th>
 					<th class="px-5 py-3 text-right font-semibold">Balance</th>
 					<th class="px-5 py-3 text-right font-semibold">Earned</th>
 					<th class="px-5 py-3 text-right font-semibold">Redeemed</th>
@@ -274,11 +300,40 @@
 			</thead>
 			<tbody class="divide-y divide-ink-900/10">
 				{#each data.balances as m (m.id)}
+					{@const lv = levelFor(m.levelPoints, m.levelOverride)}
 					<tr>
 						<td class="px-5 py-3">
 							<a href="?view=log&member={m.id}" class="font-medium hover:text-brass-600">{m.name}</a
 							>
 							<p class="text-xs text-stone-muted">{m.memberNumber} · {m.business} · {m.hub}</p>
+						</td>
+						<td class="px-5 py-3">
+							<form
+								method="POST"
+								action="?/level"
+								use:enhance={act(-2)}
+								class="flex items-center gap-2"
+							>
+								<input type="hidden" name="member" value={m.id} />
+								<span
+									class="rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap {levelTone[
+										lv.level.key
+									]}">{lv.level.label}</span
+								>
+								<select
+									name="level"
+									aria-label="Level for {m.name}"
+									onchange={(e) => e.currentTarget.form?.requestSubmit()}
+									class="rounded border border-ink-900/15 bg-white px-1.5 py-1 text-xs"
+								>
+									<option value="" selected={!lv.manual}>By points</option>
+									{#each levels as l (l.key)}
+										<option value={l.key} selected={lv.manual && lv.level.key === l.key}
+											>Set: {l.label}</option
+										>
+									{/each}
+								</select>
+							</form>
 						</td>
 						<td class="px-5 py-3 text-right font-semibold tabular-nums">{pts(m.balance)}</td>
 						<td class="px-5 py-3 text-right tabular-nums">{pts(m.earned)}</td>
@@ -288,7 +343,7 @@
 					</tr>
 				{:else}
 					<tr
-						><td colspan="6" class="px-5 py-6 text-center text-stone-muted">No members found.</td
+						><td colspan="7" class="px-5 py-6 text-center text-stone-muted">No members found.</td
 						></tr
 					>
 				{/each}
