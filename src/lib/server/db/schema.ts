@@ -127,9 +127,11 @@ export const membershipApplication = pgTable('membership_application', {
 	city: text('city'),
 	website: text('website'),
 	about: text('about'),
-	/** Salem | Coimbatore */
+	/** Salem | Coimbatore | Tamil Nadu */
 	hub: text('hub').notNull().default('Salem'),
 	referredBy: text('referred_by'),
+	/** Canonical Instagram profile URL (required on new applications). */
+	instagram: text('instagram'),
 	/** The member who referred them, picked on the form; they earn introduction points on approval. */
 	referredById: text('referred_by_id').references(() => user.id, { onDelete: 'set null' }),
 	/** The forum's site the application came through. Membership itself covers every forum. */
@@ -198,7 +200,9 @@ export const memberProfile = pgTable('member_profile', {
 	offerings: text('offerings'),
 	/** The connections, suppliers or partners the member is looking for. */
 	lookingFor: text('looking_for'),
-	/** Salem | Coimbatore — chosen on the application; only the admin changes it. */
+	/** Instagram profile URL, carried over from the application. */
+	instagram: text('instagram'),
+	/** Salem | Coimbatore | Tamil Nadu — chosen on the application; only the admin changes it. */
 	hub: text('hub').notNull().default('Salem'),
 	/** Where to find the business, shown to other members. */
 	address: text('address'),
@@ -210,6 +214,15 @@ export const memberProfile = pgTable('member_profile', {
 		.notNull()
 		.defaultNow()
 		.$onUpdate(() => new Date())
+});
+
+/** The profile photo sent with an application; copied to member_photo on approval. */
+export const applicationPhoto = pgTable('application_photo', {
+	applicationId: integer('application_id')
+		.primaryKey()
+		.references(() => membershipApplication.id, { onDelete: 'cascade' }),
+	mime: text('mime').notNull(),
+	data: text('data').notNull()
 });
 
 export const memberPhoto = pgTable('member_photo', {

@@ -50,7 +50,7 @@ export const actions: Actions = {
 	hub: async ({ request }) => {
 		const data = await request.formData();
 		const hub = String(data.get('hub') ?? '');
-		if (!isHub(hub)) return fail(400, { error: 'Choose Salem or Coimbatore.' });
+		if (!isHub(hub)) return fail(400, { error: 'Choose Salem, Coimbatore or Tamil Nadu.' });
 		const updated = await db
 			.update(memberProfile)
 			.set({ hub })

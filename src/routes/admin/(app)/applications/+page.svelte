@@ -65,20 +65,31 @@
 
 {#if data.applications.length}
 	<ul class="mt-6 space-y-4">
-		{#each data.applications as { app, paymentId, amount, utr, hasProof, referrerName, referrerNumber } (app.id)}
+		{#each data.applications as { app, paymentId, amount, utr, hasProof, hasPhoto, referrerName, referrerNumber } (app.id)}
 			<li class="rounded-lg border border-ink-900/10 bg-white p-5 sm:p-6">
 				<div class="flex flex-wrap items-start justify-between gap-4">
-					<div>
-						<p class="flex items-center gap-2 text-lg font-semibold">
-							{app.name}
-							<ForumBadge forum={app.forum} />
-						</p>
-						<p class="text-sm text-ink-700">
-							{app.hub} hub · {app.designation ? `${app.designation}, ` : ''}{app.business} · {app.industry}{app.city
-								? ` · ${app.city}`
-								: ''}
-						</p>
-						<p class="mt-1 text-sm text-stone-muted">Applied {when(app.createdAt)}</p>
+					<div class="flex items-start gap-4">
+						{#if hasPhoto}
+							<a href="/admin/application-photo/{app.id}" target="_blank" class="shrink-0">
+								<img
+									src="/admin/application-photo/{app.id}"
+									alt="Photo of {app.name}"
+									class="size-14 rounded-full object-cover ring-1 ring-ink-900/10"
+								/>
+							</a>
+						{/if}
+						<div>
+							<p class="flex items-center gap-2 text-lg font-semibold">
+								{app.name}
+								<ForumBadge forum={app.forum} />
+							</p>
+							<p class="text-sm text-ink-700">
+								{app.hub} hub · {app.designation ? `${app.designation}, ` : ''}{app.business} · {app.industry}{app.city
+									? ` · ${app.city}`
+									: ''}
+							</p>
+							<p class="mt-1 text-sm text-stone-muted">Applied {when(app.createdAt)}</p>
+						</div>
 					</div>
 					{#if amount !== null}
 						<div class="rounded-md bg-ivory-100 px-4 py-3 text-right">
@@ -104,6 +115,16 @@
 						<dt class="text-stone-muted">Phone</dt>
 						<dd><a href="tel:{app.phone}" class="hover:text-brass-600">{app.phone}</a></dd>
 					</div>
+					{#if app.instagram}<div>
+							<dt class="text-stone-muted">Instagram</dt>
+							<dd>
+								<a href={app.instagram} target="_blank" rel="noopener" class="text-brass-600"
+									>{app.instagram
+										.replace(/^https:\/\/www\.instagram\.com\//, '@')
+										.replace(/\/$/, '')}</a
+								>
+							</dd>
+						</div>{/if}
 					{#if app.website}<div>
 							<dt class="text-stone-muted">Website</dt>
 							<dd>

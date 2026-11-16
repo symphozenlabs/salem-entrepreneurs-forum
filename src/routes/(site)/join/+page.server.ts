@@ -7,7 +7,7 @@ import {
 	memberProfile,
 	membershipApplication,
 	payment,
-	paymentProof,
+	applicationPhoto,
 	user
 } from '#lib/server/db/schema.ts';
 import { getMembership, getPayment } from '#lib/server/settings.ts';
@@ -15,7 +15,7 @@ import { upiQrSvg } from '#lib/server/qr.ts';
 import { utrInUse } from '#lib/server/members.ts';
 import { readImage } from '#lib/server/uploads.ts';
 import { isEmail, safeUrl } from '#lib/server/admin.ts';
-import { cleanUtr, industryFrom, isUtr } from '#lib/membership.ts';
+import { cleanUtr, industryFrom, instagramUrl, isUtr } from '#lib/membership.ts';
 
 export const load: PageServerLoad = async () => {
 	const [membership, paymentInfo] = await Promise.all([getMembership(), getPayment()]);
@@ -42,6 +42,7 @@ const FIELDS = [
 	'referrerNumber',
 	'referrerMode',
 	'referrerLabel',
+	'instagram',
 	'utr'
 ] as const;
 
@@ -66,17 +67,21 @@ export const actions: Actions = {
 		v.industry = industryFrom(data);
 		if (!v.industry)
 			errors.industry =
-				data.get('industry') === 'Other' ? 'Type your industry.' : 'Choose your industry.';
+				data.get('industry') === 'Other' ? 'Type your category.' : 'Choose your category.';
 		if (v.about.length > 1000) errors.about = 'Keep this under 1000 characters.';
 		const website = safeUrl(v.website);
 		if (website === undefined) errors.website = 'Enter a full link, e.g. https://example.com';
 		if (!isUtr(v.utr))
 			errors.utr = 'Enter the UPI transaction ID (UTR) from your payment app — usually 12 digits.';
-		if (data.get('consent') !== 'on') errors.consent = 'Please confirm the details are correct.';
+		const instagram = instagramUrl(v.instagram);
+		if (!instagram)
+			errors.instagram = 'Enter your Instagram profile, e.g. instagram.com/yourbusiness';
+		if (data.get('consent') !== 'on')
+			errors.consent = 'Please confirm the details are correct and that the fee is non-refundable.';
 
-		const upload = await readImage(data, 'proof', 4);
-		if (upload && 'error' in upload) errors.proof = upload.error;
-		const proof = upload && !('error' in upload) ? upload : null;
+		const upload = await readImage(data, 'photo', 4);
+		if (upload && 'error' in upload) errors.photo = upload.error;
+		const photo = upload && !('error' in upload) ? upload : null;
 
 		// The referring member's ID (e.g. SEF-2026-0001), typed or filled in by picking them from
 		// the name search. It must belong to an active member, who then earns introduction points
@@ -151,14 +156,14 @@ export const actions: Actions = {
 					hub: v.hub,
 					referredBy: v.referrerNumber || null,
 					referredById,
+					instagram,
 					forum: locals.forum
 				})
 				.returning({ id: membershipApplication.id });
-			const [pay] = await db
+			await db
 				.insert(payment)
-				.values({ applicationId: app.id, purpose: 'joining', amount: fee, utr: v.utr })
-				.returning({ id: payment.id });
-			if (proof) await db.insert(paymentProof).values({ paymentId: pay.id, ...proof });
+				.values({ applicationId: app.id, purpose: 'joining', amount: fee, utr: v.utr });
+			if (photo) await db.insert(applicationPhoto).values({ applicationId: app.id, ...photo });
 		} catch (e) {
 			console.error('[join] application failed:', e);
 			return fail(500, {

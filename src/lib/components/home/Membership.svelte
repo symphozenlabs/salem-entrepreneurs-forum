@@ -2,7 +2,7 @@
 	import { rupees, type Membership } from '#lib/content.ts';
 	import { activeForum } from '#lib/forum.svelte.ts';
 	const forum = $derived(activeForum());
-	import type { PaymentInfo } from '#lib/membership.ts';
+	import { isLifetime, type PaymentInfo } from '#lib/membership.ts';
 	import { magnetic, reveal, rise } from '#lib/motion.ts';
 
 	let {
@@ -11,12 +11,16 @@
 		qrSvg
 	}: { membership: Membership; payment: PaymentInfo; qrSvg: string | null } = $props();
 
-	const steps = [
+	const lifetime = $derived(isLifetime(membership.period));
+	const steps = $derived([
 		{ t: 'Apply', d: 'Tell us about you and your business. Five minutes.' },
 		{ t: 'Review', d: 'The secretariat reviews every application within 24 business hours.' },
-		{ t: 'Confirm', d: 'Pay the annual fee by UPI or bank transfer; we verify it manually.' },
+		{
+			t: 'Confirm',
+			d: `Pay the ${lifetime ? 'one-time' : 'annual'} fee by UPI or bank transfer; we verify it manually.`
+		},
 		{ t: 'Welcome', d: 'Your digital member pass and directory profile go live.' }
-	];
+	]);
 </script>
 
 <section
@@ -40,12 +44,14 @@
 				class="relative rounded-[2px] bg-gradient-to-b from-ink-800 to-ink-900 p-10 ring-1 ring-brass-400/30"
 			>
 				<div class="hairline absolute inset-x-10 top-0"></div>
-				<p class="eyebrow text-brass-300">Annual membership</p>
+				<p class="eyebrow text-brass-300">{lifetime ? 'Lifetime' : 'Annual'} membership</p>
 				<p class="mt-8 flex items-baseline gap-3">
 					<span class="display text-brass-gradient text-7xl sm:text-8xl"
 						>{rupees(membership.fee)}</span
 					>
-					<span class="text-ivory-200/60">/ {membership.period}</span>
+					<span class="text-ivory-200/60"
+						>{lifetime ? 'one-time · non-refundable' : `/ ${membership.period}`}</span
+					>
 				</p>
 				<ul class="mt-10 space-y-4">
 					{#each membership.includes as item, i (i)}

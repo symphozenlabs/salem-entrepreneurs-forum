@@ -54,8 +54,18 @@ export function membershipStatus(expiresAt: Date, now = new Date()) {
 	return { state: 'active' as const, days };
 }
 
-/** "12 months" → 12, "1 year" → 12, "2 years" → 24; anything else counts as a year. */
+/** A one-time fee for life: the admin's period reads "Lifetime" (or similar). */
+export const isLifetime = (period: string) => /life/i.test(period);
+
+/** Lifetime membership expires a century on, so it never needs renewing. */
+const LIFETIME_MONTHS = 1200;
+
+/**
+ * "12 months" → 12, "1 year" → 12, "2 years" → 24, "Lifetime" → 1200; anything else counts
+ * as a year.
+ */
 export function periodMonths(period: string) {
+	if (isLifetime(period)) return LIFETIME_MONTHS;
 	const m = period.match(/(\d+)\s*(month|year)/i);
 	if (!m) return 12;
 	const n = Number(m[1]);
@@ -76,7 +86,23 @@ export const statusLabel: Record<string, string> = {
 	rejected: 'Not verified'
 };
 
-/** The industry from a form: the listed choice, or the typed one when "Other" was picked. */
+/**
+ * An Instagram profile from what people type: "@handle", "handle", "instagram.com/handle" or a
+ * full link (with tracking parameters). Returns the canonical profile URL, or null if it isn't one.
+ */
+export function instagramUrl(input: string) {
+	const bare = input.trim().replace(/^https?:\/\//i, '');
+	const onInstagram = /^(www\.|m\.)?instagram\.com\//i.test(bare);
+	// A link to some other site (facebook.com/…) isn't an Instagram profile.
+	if (!onInstagram && /^[^/@]+\.[a-z]{2,}\//i.test(bare)) return null;
+	const s = bare
+		.replace(/^(www\.|m\.)?instagram\.com\//i, '')
+		.replace(/^@/, '')
+		.split(/[/?#]/)[0];
+	return /^[A-Za-z0-9._]{1,30}$/.test(s) ? `https://www.instagram.com/${s}/` : null;
+}
+
+/** The category from a form: the listed choice, or the typed one when "Other" was picked. */
 export function industryFrom(data: FormData) {
 	const choice = String(data.get('industry') ?? '').trim();
 	const typed = String(data.get('industryOther') ?? '')

@@ -44,14 +44,15 @@
 		<h2 class="font-semibold">Fee & benefits</h2>
 		<div class="grid gap-6 sm:grid-cols-2">
 			<label class="block">
-				<span class="field-label">Annual fee (₹) *</span>
+				<span class="field-label">Membership fee (₹) *</span>
 				<input name="fee" inputmode="numeric" required bind:value={fee} class="field-input" />
 			</label>
 			<label class="block">
 				<span class="field-label">Period *</span>
 				<input name="period" required bind:value={period} class="field-input" />
 				<span class="mt-1.5 block text-xs text-stone-muted"
-					>Also sets how long approvals and renewals last.</span
+					>Also sets how long approvals and renewals last. Type “Lifetime” for a one-time fee that
+					never expires.</span
 				>
 			</label>
 		</div>
