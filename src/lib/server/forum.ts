@@ -1,6 +1,13 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { FORUM_BASE_DOMAIN } from '$app/env/private';
-import { DEFAULT_FORUM, FORUM_COOKIE, forums, isForumId, type ForumId } from '#lib/forums.ts';
+import {
+	DEFAULT_FORUM,
+	FORUM_COOKIE,
+	forums,
+	isForumId,
+	LANDING_HOSTS,
+	type ForumId
+} from '#lib/forums.ts';
 
 /**
  * The parent domain the forums live under as subdomains (salem.<base>, coimbatore.<base>, …).
@@ -16,11 +23,13 @@ function forumFromHost(host: string, base: string): ForumId | null {
 }
 
 /**
- * The forum a visitor lands on when they haven't picked one: an address whose first part is a
- * forum's short name opens that forum (sef.midtownevents.in → Salem, cef.… → Coimbatore,
- * tnef.… → Tamil Nadu); any other address opens the default forum.
+ * The forum a visitor lands on when they haven't picked one: a listed address (LANDING_HOSTS:
+ * sef.… → Salem, cef.… → Coimbatore, tn.… → Tamil Nadu), else an address whose first part is a
+ * forum's short name; any other address opens the default forum.
  */
 export function landingForum(host: string): ForumId {
+	const listed = LANDING_HOSTS[host.toLowerCase()];
+	if (listed) return listed;
 	const label = host.split('.')[0];
 	return (
 		Object.values(forums).find((f) => f.brand.short.toLowerCase() === label)?.id ?? DEFAULT_FORUM

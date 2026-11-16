@@ -1,5 +1,5 @@
 import { ORIGIN, BETTER_AUTH_SECRET, FORUM_BASE_DOMAIN } from '$app/env/private';
-import { forumList } from '#lib/forums.ts';
+import { forumList, LANDING_HOSTS } from '#lib/forums.ts';
 
 // With the forums on subdomains of one domain, one sign-in works on all of them.
 const base = (FORUM_BASE_DOMAIN || '').replace(/^\.+|\.+$/g, '').toLowerCase();
@@ -12,9 +12,12 @@ import { db } from '#lib/server/db/index.ts';
 export const auth = betterAuth({
 	baseURL: ORIGIN,
 	secret: BETTER_AUTH_SECRET,
+	// Every forum address people sign in on (sef.…, cef.…, tn.…).
+	trustedOrigins: Object.keys(LANDING_HOSTS).map((h) => `https://${h}`),
 	...(base
 		? {
 				trustedOrigins: [
+					...Object.keys(LANDING_HOSTS).map((h) => `https://${h}`),
 					`https://${base}`,
 					`https://www.${base}`,
 					...forumList.map((f) => `https://${f.subdomain}.${base}`)

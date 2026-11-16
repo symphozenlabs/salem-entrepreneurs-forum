@@ -18,6 +18,17 @@ export const STATE_FORUM: ForumId = 'tamilnadu';
 /** Cookie that remembers the visitor's forum (set on the parent domain when subdomains are used). */
 export const FORUM_COOKIE = 'forum';
 
+/**
+ * Web addresses that open a particular forum for a first-time visitor (the dropdown can still
+ * switch). Each must also be added as a domain on the Vercel project.
+ */
+export const LANDING_HOSTS: Record<string, ForumId> = {
+	'sef.midtownevents.in': 'salem',
+	'cef.midtownevents.in': 'coimbatore',
+	'tn.midtownevents.in': 'tamilnadu',
+	'tnef.midtownevents.in': 'tamilnadu'
+};
+
 export const isForumId = (v: unknown): v is ForumId =>
 	typeof v === 'string' && (FORUM_IDS as readonly string[]).includes(v);
 
