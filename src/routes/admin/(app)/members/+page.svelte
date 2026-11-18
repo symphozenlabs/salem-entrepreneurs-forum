@@ -4,7 +4,7 @@
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import { eventShortDate } from '#lib/events.ts';
-	import { membershipStatus } from '#lib/membership.ts';
+	import { isPhoneLogin, loginId, membershipStatus } from '#lib/membership.ts';
 	import CredentialsNotice from '#lib/components/admin/CredentialsNotice.svelte';
 	import IndustryField from '#lib/components/IndustryField.svelte';
 	import { Download, Upload, UserPlus } from '@lucide/svelte';
@@ -52,11 +52,11 @@
 	) {
 		const q = (v: string) => `"${v.replace(/"/g, '""')}"`;
 		const lines = [
-			['Member number', 'Name', 'Email', 'Phone', 'Temporary password', 'Login emailed'],
+			['Member number', 'Name', 'Sign in with', 'Phone', 'Password', 'Login emailed'],
 			...rows.map((r) => [
 				r.memberNumber,
 				r.name,
-				r.email,
+				loginId(r.email),
 				r.phone,
 				r.password,
 				r.emailed ? 'Yes' : 'No'
@@ -151,14 +151,15 @@
 	>
 		<h2 class="font-semibold">Add a member</h2>
 		<p class="mt-1 text-sm text-stone-muted">
-			They get a login with a temporary password and the next member number for their hub — SEF-…
-			for Salem, CEF-… for Coimbatore, TNEF-… for Tamil Nadu.
+			They sign in with their email (or mobile number if there’s no email) and their mobile number
+			as the starting password, then choose their own. They get the next member number for their hub
+			— SEF-… for Salem, CEF-… for Coimbatore, TNEF-… for Tamil Nadu.
 		</p>
 		<div class="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2">
-			{#each [['name', 'Full name *', 'text'], ['email', 'Email *', 'email'], ['phone', 'Mobile number *', 'tel'], ['business', 'Business name *', 'text']] as [k, l, t] (k)}
+			{#each [['name', 'Full name *', 'text'], ['email', 'Email', 'email'], ['phone', 'Mobile number *', 'tel'], ['business', 'Business name *', 'text']] as [k, l, t] (k)}
 				<label class="block">
 					<span class="field-label">{l}</span>
-					<input name={k} type={t} required value={val(k)} class="field-input" />
+					<input name={k} type={t} required={k !== 'email'} value={val(k)} class="field-input" />
 					{#if err(k)}<span class="field-error">{err(k)}</span>{/if}
 				</label>
 			{/each}
@@ -213,10 +214,10 @@
 				> and open it in Excel or Google Sheets.
 			</li>
 			<li>
-				One member per row. Only <strong class="text-ink-900">Name, Email and Phone</strong> are needed
-				— members add their business and category from their profile. Hub (Salem, Coimbatore or Tamil
-				Nadu) defaults to the city, else Salem; Joining date (DD-MM-YYYY) defaults to today. A Google
-				Form export works as it is. Delete the example row.
+				One member per row. Only <strong class="text-ink-900">Name and Phone</strong> are needed — members
+				add their business and category from their profile. Without an email, a member signs in with their
+				mobile number. Hub (Salem, Coimbatore or Tamil Nadu) defaults to the city, else Salem; Joining
+				date (DD-MM-YYYY) defaults to today. A Google Form export works as it is. Delete the example row.
 			</li>
 			<li>Save it as CSV (File → Save as / Download → CSV) and upload it here.</li>
 		</ol>
@@ -309,7 +310,7 @@
 						<td class="px-4 py-4">
 							<p class="font-medium">{m.name}</p>
 							<p class="text-xs text-stone-muted">
-								{m.memberNumber}{m.mustChangePassword ? ' · still on temporary password' : ''}
+								{m.memberNumber}{m.mustChangePassword ? ' · hasn’t signed in yet' : ''}
 							</p>
 						</td>
 						<td class="px-4 py-4">
@@ -329,7 +330,11 @@
 							>{m.business}<span class="block text-xs text-stone-muted">{m.industry}</span></td
 						>
 						<td class="px-4 py-4">
-							<a href="mailto:{m.email}" class="block hover:text-brass-600">{m.email}</a>
+							{#if isPhoneLogin(m.email)}
+								<span class="block text-stone-muted">No email · signs in with mobile</span>
+							{:else}
+								<a href="mailto:{m.email}" class="block hover:text-brass-600">{m.email}</a>
+							{/if}
 							<a href="tel:{m.phone}" class="text-xs text-stone-muted hover:text-brass-600"
 								>{m.phone}</a
 							>

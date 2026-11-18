@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Mail, MessageCircle, Phone } from '@lucide/svelte';
 
+	import { isPhoneLogin } from '#lib/membership.ts';
 	let { phone, email }: { phone: string; email: string } = $props();
 
 	const digits = $derived(phone.replace(/\D/g, '').replace(/^(\d{10})$/, '91$1'));
@@ -13,5 +14,6 @@
 	<a href="https://wa.me/{digits}" target="_blank" rel="noopener" class={cls}
 		><MessageCircle class="size-3.5" /> WhatsApp</a
 	>
-	<a href="mailto:{email}" class={cls}><Mail class="size-3.5" /> Email</a>
+	{#if !isPhoneLogin(email)}<a href="mailto:{email}" class={cls}><Mail class="size-3.5" /> Email</a
+		>{/if}
 </div>

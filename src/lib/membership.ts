@@ -111,3 +111,20 @@ export function industryFrom(data: FormData) {
 		.slice(0, 60);
 	return choice === 'Other' ? typed : choice;
 }
+
+/** A mobile number's last 10 digits ("+91 98765 43210" → "9876543210"), or "" if too short. */
+export function phoneDigits(phone: string) {
+	const d = phone.replace(/\D/g, '');
+	return d.length >= 10 ? d.slice(-10) : '';
+}
+
+/**
+ * Members without an email sign in with their mobile number. Their account still needs an
+ * email address, so it gets a stand-in on a domain that can never receive mail.
+ */
+const PHONE_DOMAIN = '@phone.invalid';
+export const phoneLoginEmail = (phone: string) => `${phoneDigits(phone)}${PHONE_DOMAIN}`;
+export const isPhoneLogin = (email: string) => email.toLowerCase().endsWith(PHONE_DOMAIN);
+/** What a member types to sign in: their email, or their mobile number if they have none. */
+export const loginId = (email: string) =>
+	isPhoneLogin(email) ? email.slice(0, -PHONE_DOMAIN.length) : email;

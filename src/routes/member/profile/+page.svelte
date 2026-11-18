@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isPhoneLogin, loginId } from '#lib/membership.ts';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import IndustryField from '#lib/components/IndustryField.svelte';
@@ -42,8 +43,12 @@
 				{#if errors.name}<p class="field-error">{errors.name}</p>{/if}
 			</label>
 			<label class="block">
-				<span class="field-label">Email</span>
-				<input value={me.email} disabled class="field-input bg-ivory-100 text-stone-muted" />
+				<span class="field-label">{isPhoneLogin(me.email) ? 'You sign in with' : 'Email'}</span>
+				<input
+					value={loginId(me.email)}
+					disabled
+					class="field-input bg-ivory-100 text-stone-muted"
+				/>
 				<span class="mt-1.5 block text-xs text-stone-muted"
 					>Ask the secretariat to change your login email.</span
 				>

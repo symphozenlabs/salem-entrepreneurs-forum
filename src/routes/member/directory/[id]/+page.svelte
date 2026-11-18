@@ -2,6 +2,7 @@
 	import type { PageProps } from './$types';
 	import { photoUrl } from '#lib/network.ts';
 	import ContactButtons from '#lib/components/member/ContactButtons.svelte';
+	import { isPhoneLogin } from '#lib/membership.ts';
 
 	let { data }: PageProps = $props();
 	const m = $derived(data.member);
@@ -63,7 +64,9 @@
 
 		<aside class="h-fit space-y-4 rounded-lg border border-ink-900/10 bg-white p-5">
 			<p class="text-sm"><span class="text-stone-muted">Phone</span><br />{m.phone}</p>
-			<p class="text-sm"><span class="text-stone-muted">Email</span><br />{m.email}</p>
+			{#if !isPhoneLogin(m.email)}
+				<p class="text-sm"><span class="text-stone-muted">Email</span><br />{m.email}</p>
+			{/if}
 			{#if m.address || m.mapUrl}
 				<p class="text-sm">
 					<span class="text-stone-muted">Address</span><br />{m.address ?? ''}
