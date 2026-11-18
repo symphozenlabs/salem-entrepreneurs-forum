@@ -13,7 +13,7 @@
 	</h1>
 	{#if data.firstTime}
 		<p class="mt-3 text-stone-muted">
-			You signed in with the temporary password from your welcome email. Set your own before
+			You signed in with your starting password (your mobile number). Choose your own before
 			continuing.
 		</p>
 	{/if}

@@ -18,9 +18,15 @@ import {
 	passwordResetEmail,
 	sendEmail
 } from '#lib/server/email.ts';
-import { addMonths, periodMonths } from '#lib/membership.ts';
+import { addMonths, periodMonths, phoneDigits, phoneLoginEmail } from '#lib/membership.ts';
 import { rupees } from '#lib/content.ts';
 import { hubPrefix } from '#lib/network.ts';
+
+/**
+ * A new member's first password: their 10-digit mobile number, which they change when they
+ * first sign in. A random one if the number is too short to use.
+ */
+const startingPassword = (phone: string) => phoneDigits(phone) || generatePassword();
 
 /** Easy to read aloud or type from a phone: no 0/O, 1/l/I. e.g. "k7mp-4qx2-h9tw". */
 export function generatePassword() {
@@ -114,11 +120,17 @@ async function insertProfile(userId: string, m: MemberDetails) {
  * Pass `email: false` to leave emailing to the caller.
  */
 export async function addMember(m: MemberDetails, opts: { email?: boolean } = {}) {
-	const email = m.email.toLowerCase();
+	// No email: they sign in with their mobile number instead.
+	const email = m.email ? m.email.toLowerCase() : phoneLoginEmail(m.phone);
 	const [taken] = await db.select({ id: user.id }).from(user).where(eq(user.email, email));
-	if (taken) return { error: `An account for ${email} already exists.` };
+	if (taken)
+		return {
+			error: m.email
+				? `An account for ${email} already exists.`
+				: `A member without email already signs in with ${phoneDigits(m.phone)}.`
+		};
 
-	const password = generatePassword();
+	const password = startingPassword(m.phone);
 	let accountId: string | null = null;
 	let memberNumber: string;
 	try {
@@ -203,7 +215,7 @@ export async function approveApplication(id: number, adminId: string) {
 		return { error: `An account for ${email} already exists.` };
 	}
 
-	const password = generatePassword();
+	const password = startingPassword(app.phone);
 	let accountId: string | null = null;
 	let memberNumber = '';
 	try {
@@ -347,7 +359,10 @@ export async function rejectPayment(paymentId: number, adminId: string, note: st
 	return { emailed };
 }
 
-/** Gives a member a new temporary password (signing them out everywhere) and emails it. */
+/**
+ * Resets a member's password to their mobile number (signing them out everywhere); they
+ * choose their own when they next sign in. Emailed when possible.
+ */
 export async function resetMemberPassword(userId: string) {
 	const [m] = await db
 		.select({ name: user.name, email: user.email, role: user.role })
@@ -355,7 +370,11 @@ export async function resetMemberPassword(userId: string) {
 		.where(eq(user.id, userId));
 	if (!m || m.role !== 'member') return { error: 'That member no longer exists.' };
 	const ctx = await auth.$context;
-	const password = generatePassword();
+	const [p] = await db
+		.select({ phone: memberProfile.phone })
+		.from(memberProfile)
+		.where(eq(memberProfile.userId, userId));
+	const password = startingPassword(p?.phone ?? '');
 	await ctx.internalAdapter.updatePassword(userId, await ctx.password.hash(password));
 	await ctx.internalAdapter.deleteUserSessions(userId);
 	await db.update(user).set({ mustChangePassword: true }).where(eq(user.id, userId));

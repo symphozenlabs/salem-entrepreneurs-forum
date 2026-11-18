@@ -1,16 +1,16 @@
 // Checking member details an admin enters, one by one or from a spreadsheet (CSV).
 import { isEmail, safeUrl } from '#lib/server/admin.ts';
 import { hubs, isHub } from '#lib/network.ts';
-import { instagramUrl } from '#lib/membership.ts';
+import { instagramUrl, phoneDigits, phoneLoginEmail } from '#lib/membership.ts';
 import type { MemberDetails } from '#lib/server/members.ts';
 
 /**
- * The spreadsheet's columns, in the template's order. Only name, email and phone are needed
- * to add someone; members fill in the rest (business, category) from their profile.
+ * The spreadsheet's columns, in the template's order. Only name and phone are needed to add
+ * someone (no email: they sign in with their phone); members fill in the rest from their profile.
  */
 export const COLUMNS = [
 	{ key: 'name', label: 'Name', required: true },
-	{ key: 'email', label: 'Email', required: true },
+	{ key: 'email', label: 'Email', required: false },
 	{ key: 'phone', label: 'Phone', required: true },
 	{ key: 'business', label: 'Business', required: false },
 	{ key: 'industry', label: 'Category', required: false },
@@ -73,7 +73,8 @@ export function checkMember(
 	const joinedAt = v.joinedOn.trim() ? parseDay(v.joinedOn) : new Date();
 
 	if (!name) errors.name = 'Enter the name.';
-	if (!isEmail(email)) errors.email = 'Enter a valid email — the login is sent here.';
+	// No email is fine: they sign in with their mobile number.
+	if (email && !isEmail(email)) errors.email = 'Enter a valid email, or leave it blank.';
 	if (phone.replace(/\D/g, '').length < 10) errors.phone = 'Enter a 10-digit mobile number.';
 	if (!business && !fromFile) errors.business = 'Enter the business name.';
 	if (!industry && !fromFile) errors.industry = 'Enter the category.';
@@ -210,10 +211,12 @@ export function readMembersCsv(
 		const r = checkMember(raw, { fromFile: true });
 		const issues = r.ok ? [] : Object.entries(r.errors).map(([k, e]) => `${label[k]}: ${e}`);
 		const email = (raw.email ?? '').trim().toLowerCase();
-		if (email && takenEmails.has(email))
-			issues.push(`Email: ${email} is already a member or admin.`);
-		else if (email && seen.has(email)) issues.push(`Email: ${email} appears twice in the file.`);
-		seen.add(email);
+		// Members without email sign in with their phone, so that must be unique instead.
+		const login = email || (phoneDigits(raw.phone ?? '') && phoneLoginEmail(raw.phone ?? ''));
+		const what = email ? `Email: ${email}` : `Phone: ${phoneDigits(raw.phone ?? '')} (no email)`;
+		if (login && takenEmails.has(login)) issues.push(`${what} is already a member or admin.`);
+		else if (login && seen.has(login)) issues.push(`${what} appears twice in the file.`);
+		if (login) seen.add(login);
 		if (issues.length)
 			problems.push({ row: i + 2, name: (raw.name ?? '').trim(), problems: issues });
 		else if (r.ok) members.push(r.member);

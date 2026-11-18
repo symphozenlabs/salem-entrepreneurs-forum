@@ -1,7 +1,36 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
 import type { Actions, PageServerLoad } from './$types';
+import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '#lib/server/auth.ts';
+import { db } from '#lib/server/db/index.ts';
+import { memberProfile, user } from '#lib/server/db/schema.ts';
+import { phoneDigits, phoneLoginEmail } from '#lib/membership.ts';
+
+/**
+ * The account's email for what someone typed: an email as it is; a mobile number for a
+ * member without email (their stand-in address), else the one member with that number.
+ */
+async function accountEmail(typed: string) {
+	if (typed.includes('@')) return typed;
+	const digits = phoneDigits(typed);
+	if (!digits) return typed;
+	const own = phoneLoginEmail(digits);
+	const [direct] = await db.select({ email: user.email }).from(user).where(eq(user.email, own));
+	if (direct) return direct.email;
+	const matches = await db
+		.select({ email: user.email })
+		.from(memberProfile)
+		.innerJoin(user, eq(user.id, memberProfile.userId))
+		.where(
+			and(
+				eq(user.role, 'member'),
+				sql`right(regexp_replace(${memberProfile.phone}, '[^0-9]', '', 'g'), 10) = ${digits}`
+			)
+		)
+		.limit(2);
+	return matches.length === 1 ? matches[0].email : typed;
+}
 
 /** Only ever send people back to a member page or an event registration, never to another site. */
 const safeNext = (next: string | null) =>
@@ -21,17 +50,19 @@ export const actions: Actions = {
 			.trim()
 			.toLowerCase();
 		const password = String(data.get('password') ?? '');
-		if (!email || !password) return fail(400, { email, error: 'Enter your email and password.' });
+		if (!email || !password)
+			return fail(400, { email, error: 'Enter your email (or mobile number) and password.' });
 
 		let role: unknown;
 		try {
 			const result = await auth.api.signInEmail({
-				body: { email, password, rememberMe: true },
+				body: { email: await accountEmail(email), password, rememberMe: true },
 				headers: request.headers
 			});
 			role = result.user.role;
 		} catch (e) {
-			if (e instanceof APIError) return fail(400, { email, error: 'Wrong email or password.' });
+			if (e instanceof APIError)
+				return fail(400, { email, error: 'Wrong email / mobile number or password.' });
 			console.error('[login] sign-in failed:', e);
 			return fail(503, {
 				email,

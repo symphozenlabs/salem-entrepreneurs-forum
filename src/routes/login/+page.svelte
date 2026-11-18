@@ -59,10 +59,12 @@
 					</p>
 				{/if}
 				<label class="block">
-					<span class="field-label !text-ivory-200/80">Email</span>
+					<span class="field-label !text-ivory-200/80">Email or mobile number</span>
 					<input
 						name="email"
-						type="email"
+						type="text"
+						inputmode="email"
+						autocapitalize="none"
 						autocomplete="username"
 						required
 						value={form?.email ?? ''}

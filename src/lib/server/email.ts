@@ -8,7 +8,8 @@ export const emailConfigured = () => !!RESEND_API_KEY && !!EMAIL_FROM;
  * configured or the send fails, so callers can fall back to sharing by hand.
  */
 export async function sendEmail(msg: { to: string; subject: string; text: string; html: string }) {
-	if (!emailConfigured()) return false;
+	// No mailbox behind a phone-only member's stand-in address (see phoneLoginEmail).
+	if (!emailConfigured() || msg.to.toLowerCase().endsWith('.invalid')) return false;
 	try {
 		const res = await fetch('https://api.resend.com/emails', {
 			method: 'POST',
@@ -64,7 +65,7 @@ export function credentialsEmail(p: {
 		`Welcome to the ${brand.name}. Your payment has been verified and your membership is active. Member number: ${p.memberNumber}.`,
 		`Sign in at ${login}`,
 		`Email: ${p.email}`,
-		`Temporary password: ${p.password}`,
+		`Password: ${p.password} (your mobile number)`,
 		'You will be asked to choose your own password the first time you sign in. Then complete your profile so other members can find you in the directory.',
 		'— The SEF Secretariat'
 	];

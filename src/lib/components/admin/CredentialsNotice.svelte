@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { loginId } from '#lib/membership.ts';
 
 	type Props = { name: string; email: string; password: string; emailed: boolean; phone?: string };
 	let { name, email, password, emailed, phone }: Props = $props();
 	let copied = $state(false);
 
 	const message = $derived(
-		`Hello ${name}, your SEF member login:\n${page.url.origin}/login\nEmail: ${email}\nTemporary password: ${password}\nYou'll choose your own password when you first sign in.`
+		`Hello ${name}, your SEF member login:\n${page.url.origin}/login\n${email === loginId(email) ? 'Email' : 'Mobile number'}: ${loginId(email)}\nPassword: ${password}\nYou'll choose your own password when you first sign in.`
 	);
 	const wa = $derived(
 		phone
