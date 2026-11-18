@@ -166,7 +166,11 @@ export type RowProblem = { row: number; name: string; problems: string[] };
  * Reads and checks a whole spreadsheet. Every row must be right before anything is
  * added, so a fixed file can simply be uploaded again.
  */
-export function readMembersCsv(text: string, takenEmails: Set<string>) {
+export function readMembersCsv(
+	text: string,
+	takenEmails: Set<string>,
+	{ byJoiningDate }: { byJoiningDate: boolean }
+) {
 	const rows = parseCsv(text);
 	if (rows.length < 2)
 		return { error: 'The file has no members in it — check it has a header row.' };
@@ -201,8 +205,12 @@ export function readMembersCsv(text: string, takenEmails: Set<string>) {
 		else if (r.ok) members.push(r.member);
 	});
 	if (problems.length) return { problems };
-	// Earlier joiners get the earlier member numbers.
-	return { members: members.sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime()) };
+	// First upload: earlier joiners get the earlier member numbers. Later: the file's order.
+	return {
+		members: byJoiningDate
+			? members.sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
+			: members
+	};
 }
 
 /** The template's contents: the header row and one example. */

@@ -212,8 +212,13 @@
 			<li>Save it as CSV (File → Save as / Download → CSV) and upload it here.</li>
 		</ol>
 		<p class="mt-3 text-sm text-stone-muted">
-			Member numbers follow joining dates (earliest first), in each hub’s series. If any row has a
-			problem, nothing is added — fix the rows listed and upload again. Up to 200 members at a time.
+			{#if data.firstImportDone}
+				New members get the next numbers in each hub’s series, in the file’s row order.
+			{:else}
+				<strong class="text-ink-900">First upload:</strong> member numbers follow joining dates (earliest
+				first) in each hub’s series. Later uploads follow the file’s row order.
+			{/if} If any row has a problem, nothing is added — fix the rows listed and upload again. Up to 200
+			members at a time.
 		</p>
 		<input
 			type="file"

@@ -50,3 +50,11 @@ export async function getPayment(): Promise<PaymentInfo> {
 }
 
 export const savePayment = (value: PaymentInfo) => write('payment', value);
+
+/**
+ * When the first bulk upload of members happened. That upload numbers members by joining
+ * date (bringing in the existing membership); later ones follow the file's row order.
+ */
+export const firstImportAt = async () =>
+	(await read<string>('members-first-import'))?.value ?? null;
+export const markFirstImport = () => write('members-first-import', new Date().toISOString());

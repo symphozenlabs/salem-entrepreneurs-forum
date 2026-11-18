@@ -7,6 +7,7 @@ import { memberProfile, user } from '#lib/server/db/schema.ts';
 import { addMember, emailLogin, resetMemberPassword } from '#lib/server/members.ts';
 import { checkMember, readMembersCsv, type Raw } from '#lib/server/member-import.ts';
 import { industryFrom } from '#lib/membership.ts';
+import { firstImportAt, markFirstImport } from '#lib/server/settings.ts';
 import { isHub } from '#lib/network.ts';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -45,7 +46,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		.orderBy(asc(user.name))
 		.limit(5000);
 	const { items, pager } = paginate(members, url, 25);
-	return { members: items, pager, q };
+	return { members: items, pager, q, firstImportDone: !!(await firstImportAt()) };
 };
 
 const FIELDS = [
@@ -95,11 +96,12 @@ export const actions: Actions = {
 		const taken = new Set(
 			(await db.select({ email: user.email }).from(user)).map((u) => u.email.toLowerCase())
 		);
-		const read = readMembersCsv(await file.text(), taken);
+		const first = !(await firstImportAt());
+		const read = readMembersCsv(await file.text(), taken, { byJoiningDate: first });
 		if ('error' in read) return fail(400, { imported: { error: read.error } });
 		if ('problems' in read) return fail(400, { imported: { problems: read.problems } });
 
-		// One at a time, so member numbers follow joining dates; emails go out afterwards.
+		// One at a time, so member numbers follow the order above; emails go out afterwards.
 		const added = [];
 		const failed: string[] = [];
 		for (const m of read.members) {
@@ -112,7 +114,8 @@ export const actions: Actions = {
 			const sent = await Promise.all(batch.map((a) => emailLogin(a)));
 			sent.forEach((ok, j) => (batch[j].emailed = ok));
 		}
-		return { imported: { added, failed } };
+		if (first && added.length) await markFirstImport();
+		return { imported: { added, failed, byJoiningDate: first } };
 	},
 
 	hub: async ({ request }) => {
