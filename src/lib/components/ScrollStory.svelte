@@ -254,6 +254,7 @@
 					<p class="eyebrow text-brass-300">{c.eyebrow}</p>
 					<h2 class="display mt-4 text-5xl">{c.title}</h2>
 					<p class="mt-4 max-w-md text-ivory-200/80">{c.body}</p>
+					{#if c.tagline}<p class="mt-3 text-sm font-medium text-brass-200">{c.tagline}</p>{/if}
 				</div>
 			{/each}
 		</div>
@@ -307,6 +308,11 @@
 									{c.title}
 								</h1>
 								<p class="mt-6 max-w-md text-lg text-ivory-200/80">{c.body}</p>
+								{#if c.tagline}
+									<p class="mt-4 text-base font-medium tracking-wide text-brass-200">
+										{c.tagline}
+									</p>
+								{/if}
 							</div>
 						{:else}
 							<p class="eyebrow text-brass-300">
