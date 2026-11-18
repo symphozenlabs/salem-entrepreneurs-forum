@@ -1,19 +1,24 @@
 import { fail } from '@sveltejs/kit';
-import { and, asc, eq, ilike, or } from 'drizzle-orm';
+import { and, eq, ilike, or } from 'drizzle-orm';
 import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { memberProfile, user } from '#lib/server/db/schema.ts';
 import { addMember, emailLogin, resetMemberPassword } from '#lib/server/members.ts';
 import { checkMember, readMembersCsv, type Raw } from '#lib/server/member-import.ts';
-import { industryFrom } from '#lib/membership.ts';
+import { industryFrom, RENEWAL_WINDOW_DAYS } from '#lib/membership.ts';
 import { firstImportAt, markFirstImport } from '#lib/server/settings.ts';
 import { isHub } from '#lib/network.ts';
 
+const SORTS = ['number', 'name', 'hub', 'business', 'contact', 'joined', 'expires'] as const;
+type Sort = (typeof SORTS)[number];
+const STATUSES = ['active', 'expiring', 'expired'] as const;
+
 export const load: PageServerLoad = async ({ url }) => {
-	const q = (url.searchParams.get('q') ?? '').trim().slice(0, 80);
+	const p = url.searchParams;
+	const q = (p.get('q') ?? '').trim().slice(0, 80);
 	const term = q ? `%${q.replace(/[%_\\]/g, '\\$&')}%` : null;
-	const members = await db
+	const all = await db
 		.select({
 			id: user.id,
 			name: user.name,
@@ -43,10 +48,56 @@ export const load: PageServerLoad = async ({ url }) => {
 					: undefined
 			)
 		)
-		.orderBy(asc(user.name))
 		.limit(5000);
-	const { items, pager } = paginate(members, url, 25);
-	return { members: items, pager, q, firstImportDone: !!(await firstImportAt()) };
+
+	// Filters, from the dropdowns above the list.
+	const hub = isHub(p.get('hub')) ? p.get('hub')! : '';
+	const category = (p.get('category') ?? '').slice(0, 60);
+	const status = STATUSES.find((s) => s === p.get('status')) ?? '';
+	const signin = p.get('signin') === 'yes' || p.get('signin') === 'no' ? p.get('signin')! : '';
+	const now = Date.now();
+	const stateOf = (d: Date) => {
+		const days = (d.getTime() - now) / 86_400_000;
+		return days <= 0 ? 'expired' : days <= RENEWAL_WINDOW_DAYS ? 'expiring' : 'active';
+	};
+	const rows = all.filter(
+		(m) =>
+			(!hub || m.hub === hub) &&
+			(!category || (category === '—' ? !m.industry : m.industry === category)) &&
+			(!status || stateOf(m.expiresAt) === status) &&
+			(!signin || (signin === 'no') === m.mustChangePassword)
+	);
+
+	// Sorting, from the column titles: member number (ascending) unless chosen otherwise.
+	const sort: Sort = SORTS.find((s) => s === p.get('sort')) ?? 'number';
+	const dir = p.get('dir') === 'desc' ? -1 : 1;
+	const text = (a: string, b: string) =>
+		a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' });
+	const key: Record<Sort, (a: (typeof all)[number], b: (typeof all)[number]) => number> = {
+		number: (a, b) => text(a.memberNumber, b.memberNumber),
+		name: (a, b) => text(a.name, b.name),
+		hub: (a, b) => text(a.hub, b.hub) || text(a.memberNumber, b.memberNumber),
+		business: (a, b) => text(a.business || '~', b.business || '~'),
+		contact: (a, b) => text(a.email, b.email),
+		joined: (a, b) => a.joinedAt.getTime() - b.joinedAt.getTime(),
+		expires: (a, b) => a.expiresAt.getTime() - b.expiresAt.getTime()
+	};
+	rows.sort((a, b) => key[sort](a, b) * dir || text(a.memberNumber, b.memberNumber));
+
+	const categories = [...new Set(all.map((m) => m.industry).filter(Boolean))].sort(text);
+	const { items, pager } = paginate(rows, url, 25);
+	return {
+		members: items,
+		pager,
+		q,
+		filters: { hub, category, status, signin },
+		sort,
+		dir: dir === 1 ? ('asc' as const) : ('desc' as const),
+		categories,
+		hasBlankCategory: all.some((m) => !m.industry),
+		totalMembers: all.length,
+		firstImportDone: !!(await firstImportAt())
+	};
 };
 
 const FIELDS = [

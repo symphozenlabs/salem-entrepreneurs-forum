@@ -7,7 +7,8 @@
 	import { isPhoneLogin, loginId, membershipStatus } from '#lib/membership.ts';
 	import CredentialsNotice from '#lib/components/admin/CredentialsNotice.svelte';
 	import IndustryField from '#lib/components/IndustryField.svelte';
-	import { Download, Upload, UserPlus } from '@lucide/svelte';
+	import { ArrowDown, ArrowUp, Download, Upload, UserPlus, X } from '@lucide/svelte';
+	import { page } from '$app/state';
 
 	let { data, form }: PageProps = $props();
 	let confirming = $state<string | null>(null);
@@ -18,6 +19,29 @@
 		expired: 'bg-laterite-500/10 text-laterite-500'
 	};
 	const label = { active: 'Active', expiring: 'Renewal due', expired: 'Expired' };
+
+	/** This page's address with some query values changed (and back to page 1). */
+	function withParams(changes: Record<string, string>) {
+		const u = new URL(page.url.href);
+		for (const [k, v] of Object.entries(changes))
+			v ? u.searchParams.set(k, v) : u.searchParams.delete(k);
+		u.searchParams.delete('page');
+		return u.pathname + u.search;
+	}
+	/** Clicking a title sorts by it; clicking it again flips the order. */
+	const sortHref = (key: string) =>
+		withParams({
+			sort: key === 'number' ? '' : key,
+			dir: data.sort === key && data.dir === 'asc' ? 'desc' : ''
+		});
+	const filtered = $derived(Object.values(data.filters).some(Boolean) || !!data.q);
+	const titles = [
+		{ key: 'number', label: 'Member' },
+		{ key: 'hub', label: 'Hub' },
+		{ key: 'business', label: 'Business' },
+		{ key: 'contact', label: 'Contact' },
+		{ key: 'expires', label: 'Membership' }
+	];
 
 	const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 	const addForm = $derived(form && 'add' in form ? form.add : undefined);
@@ -276,18 +300,74 @@
 	</p>{/if}
 {#if form?.error}<p class="field-error mt-6" role="alert">{form.error}</p>{/if}
 
-<form method="GET" class="mt-8 flex max-w-xl gap-3">
-	<input
-		type="search"
-		name="q"
-		value={data.q}
-		placeholder="Search name, email, phone, business or number"
-		class="field-input !mt-0 flex-1"
-	/>
-	<button class="btn-primary">Search</button>
+<form method="GET" class="mt-8 space-y-3">
+	<div class="flex max-w-xl gap-3">
+		<input
+			type="search"
+			name="q"
+			value={data.q}
+			placeholder="Search name, email, phone, business or number"
+			class="field-input !mt-0 flex-1"
+		/>
+		<button class="btn-primary">Search</button>
+	</div>
+	<div class="flex flex-wrap items-center gap-2 text-sm">
+		<input type="hidden" name="sort" value={data.sort === 'number' ? '' : data.sort} />
+		<input type="hidden" name="dir" value={data.dir === 'desc' ? 'desc' : ''} />
+		<select
+			name="hub"
+			aria-label="Filter by hub"
+			onchange={(e) => e.currentTarget.form?.requestSubmit()}
+			class="rounded-md border-ink-900/15 py-1.5 pr-8 text-sm"
+		>
+			<option value="">All hubs</option>
+			{#each hubs as h (h)}<option selected={data.filters.hub === h}>{h}</option>{/each}
+		</select>
+		<select
+			name="category"
+			aria-label="Filter by category"
+			onchange={(e) => e.currentTarget.form?.requestSubmit()}
+			class="max-w-56 rounded-md border-ink-900/15 py-1.5 pr-8 text-sm"
+		>
+			<option value="">All categories</option>
+			{#if data.hasBlankCategory}<option value="—" selected={data.filters.category === '—'}
+					>Category not filled in</option
+				>{/if}
+			{#each data.categories as c (c)}<option selected={data.filters.category === c}>{c}</option
+				>{/each}
+		</select>
+		<select
+			name="status"
+			aria-label="Filter by membership"
+			onchange={(e) => e.currentTarget.form?.requestSubmit()}
+			class="rounded-md border-ink-900/15 py-1.5 pr-8 text-sm"
+		>
+			<option value="">Any membership</option>
+			<option value="active" selected={data.filters.status === 'active'}>Active</option>
+			<option value="expiring" selected={data.filters.status === 'expiring'}>Renewal due</option>
+			<option value="expired" selected={data.filters.status === 'expired'}>Expired</option>
+		</select>
+		<select
+			name="signin"
+			aria-label="Filter by sign-in"
+			onchange={(e) => e.currentTarget.form?.requestSubmit()}
+			class="rounded-md border-ink-900/15 py-1.5 pr-8 text-sm"
+		>
+			<option value="">Signed in or not</option>
+			<option value="yes" selected={data.filters.signin === 'yes'}>Has signed in</option>
+			<option value="no" selected={data.filters.signin === 'no'}>Hasn’t signed in yet</option>
+		</select>
+		{#if filtered}
+			<a href="/admin/members" class="inline-flex items-center gap-1 text-brass-600 hover:underline"
+				><X class="size-3.5" /> Clear</a
+			>
+		{/if}
+	</div>
 </form>
 <p class="mt-3 text-sm text-stone-muted">
-	{data.members.length} member{data.members.length === 1 ? '' : 's'}
+	{data.pager.total}{filtered ? ` of ${data.totalMembers}` : ''} member{data.pager.total === 1
+		? ''
+		: 's'}
 </p>
 
 {#if data.members.length}
@@ -295,11 +375,27 @@
 		<table class="w-full min-w-[56rem] text-left text-sm">
 			<thead class="border-b border-ink-900/10 text-xs tracking-wide text-stone-muted uppercase">
 				<tr>
-					<th class="px-4 py-3 font-semibold">Member</th>
-					<th class="px-4 py-3 font-semibold">Hub</th>
-					<th class="px-4 py-3 font-semibold">Business</th>
-					<th class="px-4 py-3 font-semibold">Contact</th>
-					<th class="px-4 py-3 font-semibold">Membership</th>
+					{#each titles as t (t.key)}
+						<th
+							class="px-4 py-3 font-semibold"
+							aria-sort={data.sort === t.key
+								? data.dir === 'asc'
+									? 'ascending'
+									: 'descending'
+								: undefined}
+						>
+							<a
+								href={sortHref(t.key)}
+								class="inline-flex items-center gap-1 uppercase hover:text-ink-900 {data.sort ===
+								t.key
+									? 'text-ink-900'
+									: ''}"
+								>{t.label}{#if data.sort === t.key}{#if data.dir === 'asc'}<ArrowUp
+											class="size-3"
+										/>{:else}<ArrowDown class="size-3" />{/if}{/if}</a
+							>
+						</th>
+					{/each}
 					<th class="px-4 py-3 font-semibold"></th>
 				</tr>
 			</thead>
@@ -389,6 +485,8 @@
 	<p
 		class="mt-6 rounded-lg border border-dashed border-ink-900/20 bg-white px-6 py-12 text-center text-sm text-stone-muted"
 	>
-		{data.q ? 'No members match.' : 'No members yet — approve an application to add the first.'}
+		{filtered
+			? 'No members match.'
+			: 'No members yet — use Add member or Bulk upload, or approve an application.'}
 	</p>
 {/if}
