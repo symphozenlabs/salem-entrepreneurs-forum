@@ -131,7 +131,7 @@
 			name="referrerNumber"
 			autocomplete="off"
 			aria-labelledby="referrer-label"
-			placeholder="e.g. SEF-2026-0001"
+			placeholder="e.g. SEF-260001"
 			bind:value={idText}
 			class="field-input sm:max-w-md"
 		/>
