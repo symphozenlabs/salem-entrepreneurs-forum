@@ -37,12 +37,6 @@
 
 			<dl class="mt-14 space-y-8 text-ink-900">
 				<div>
-					<dt class="eyebrow text-stone-muted">Visit</dt>
-					<dd class="mt-2 leading-relaxed">
-						{#each contact.address as line (line)}{line}<br />{/each}
-					</dd>
-				</div>
-				<div>
 					<dt class="eyebrow text-stone-muted">Call</dt>
 					<dd class="mt-2">
 						<a href={contact.phoneHref} class="hover:text-brass-600">{contact.phone}</a>

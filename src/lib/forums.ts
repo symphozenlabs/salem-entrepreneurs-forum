@@ -34,7 +34,8 @@ export const isForumId = (v: unknown): v is ForumId =>
 
 /** `tagline`: an optional short line under the body (shown on the opening chapter). */
 type Chapter = { at: number; eyebrow: string; title: string; body: string; tagline?: string };
-type Stat = { value: number; prefix?: string; suffix?: string; label: string };
+/** A counted figure (`value` with a `label`), or a short line of `text`. */
+type Stat = { value: number; prefix?: string; suffix?: string; label: string } | { text: string };
 
 export type Forum = {
 	id: ForumId;
@@ -93,7 +94,7 @@ export const forums: Record<ForumId, Forum> = {
 		logo: { light: '/brand/logo-light.png', ink: '/brand/logo-ink.png' },
 		contact: salem.contact,
 		stats: salem.stats,
-		statsHeading: 'A private circle of people who make Salem work.',
+		statsHeading: 'Private Circle of Entrepreneurs who makes Salem grow!',
 		industries: salem.industries,
 		industriesNote:
 			'Owners, managing directors, founders and factory operators from across Salem and the Kongu belt.',
@@ -123,9 +124,7 @@ export const forums: Record<ForumId, Forum> = {
 		// TODO: secretariat details for Coimbatore — the shared secretariat until then.
 		contact: salem.contact,
 		// TODO: Coimbatore figures. Until then: the whole network's.
-		stats: salem.stats.map((s) =>
-			s.label === 'Salem founders' ? { ...s, label: 'Founders in the network' } : s
-		),
+		stats: salem.networkStats,
 		statsHeading: 'A private circle of people who keep Coimbatore’s machines running.',
 		industries: [
 			{ name: 'Textiles', note: 'Spinning mills, yarn & knitwear exporters' },
@@ -197,9 +196,7 @@ export const forums: Record<ForumId, Forum> = {
 		},
 		// TODO: secretariat details for Tamil Nadu — the shared secretariat until then.
 		contact: salem.contact,
-		stats: salem.stats.map((s) =>
-			s.label === 'Salem founders' ? { ...s, label: 'Founders in the network' } : s
-		),
+		stats: salem.networkStats,
 		statsHeading: 'A private circle of people who build what Tamil Nadu runs on.',
 		industries: [
 			{ name: 'Automobile & EV', note: 'Chennai, Hosur & Sriperumbudur plants and suppliers' },

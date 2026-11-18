@@ -31,8 +31,7 @@
 <p class="eyebrow text-brass-600">Membership & payment</p>
 <h1 class="display mt-2 text-4xl">Fee, benefits and how to pay</h1>
 <p class="mt-2 text-sm text-stone-muted">
-	Shown on the home page’s membership card and the application page. The referral reward in
-	“Privileges” is worked out from the fee ({REFERRAL_PERCENT}%).
+	Shown on the home page’s membership card and the application page.
 </p>
 
 <form

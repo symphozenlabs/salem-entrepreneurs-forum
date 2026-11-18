@@ -36,7 +36,7 @@
 		</h2>
 
 		<dl class="mt-20 grid grid-cols-2 border-t border-ink-900/10 lg:grid-cols-4">
-			{#each stats as s, i (s.label)}
+			{#each stats as s, i ('text' in s ? s.text : s.label)}
 				<div
 					class="flex flex-col-reverse justify-end border-b border-ink-900/10 py-10 pr-6 {i % 2 ===
 					0
@@ -45,14 +45,21 @@
 						? 'pl-6'
 						: ''}"
 				>
-					<dt class="eyebrow mt-4 text-stone-muted">{s.label}</dt>
-					<dd
-						class="display text-[clamp(2.4rem,6vw,5.5rem)] whitespace-nowrap text-ink-900 tabular-nums"
-					>
-						{s.prefix ?? ''}<span data-count={s.value}>{s.value}</span><span class="text-brass-500"
-							>{s.suffix}</span
+					{#if 'text' in s}
+						<dd class="display text-[clamp(1.5rem,2.6vw,2.4rem)] leading-tight text-ink-900">
+							<span class="mb-4 block text-base text-brass-500" aria-hidden="true">✦</span>
+							{s.text}
+						</dd>
+					{:else}
+						<dt class="eyebrow mt-4 text-stone-muted">{s.label}</dt>
+						<dd
+							class="display text-[clamp(2.4rem,6vw,5.5rem)] whitespace-nowrap text-ink-900 tabular-nums"
 						>
-					</dd>
+							{s.prefix ?? ''}<span data-count={s.value}>{s.value}</span><span
+								class="text-brass-500">{s.suffix}</span
+							>
+						</dd>
+					{/if}
 				</div>
 			{/each}
 		</dl>
