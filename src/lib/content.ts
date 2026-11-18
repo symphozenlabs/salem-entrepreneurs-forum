@@ -25,8 +25,17 @@ export const nav = [
 	{ label: 'Contact', href: '/#contact' }
 ];
 
+/** Salem's highlights: a counted figure, or a short line of text. */
 export const stats = [
-	{ value: 150, suffix: '+', label: 'Salem founders' },
+	{ value: 150, suffix: '+', label: 'Entrepreneurs & Business Leaders' },
+	{ text: 'Business Collaborations & Travel Experience' },
+	{ text: 'Monthly Casual meets & Sports Activities' },
+	{ text: 'Better Learning & Business Growth' }
+];
+
+/** The whole network's figures, shown by the Coimbatore and Tamil Nadu forums for now. */
+export const networkStats = [
+	{ value: 150, suffix: '+', label: 'Founders in the network' },
 	{ value: 12, prefix: '₹', suffix: ' Cr+', label: 'Referral pipeline' },
 	{ value: 35, suffix: '+', label: 'Conclaves & meets' },
 	{ value: 98, suffix: '%', label: 'Member retention' }
