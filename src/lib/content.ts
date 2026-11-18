@@ -131,8 +131,9 @@ export const chapters = [
 	{
 		at: 0.04,
 		eyebrow: 'Salem, Tamil Nadu',
-		title: 'Where the hills meet industry.',
-		body: 'Every morning, the Shevaroys watch a city of makers go to work.'
+		title: 'Where the Hills Meet Industry!',
+		body: 'Salem – A city of Opportunities, Entrepreneurs, and growing Business.',
+		tagline: '🤝 Networking. Business Talks. Travel. Public Branding.'
 	},
 	{
 		at: 0.22,

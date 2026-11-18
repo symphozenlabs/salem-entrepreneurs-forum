@@ -32,7 +32,8 @@ export const LANDING_HOSTS: Record<string, ForumId> = {
 export const isForumId = (v: unknown): v is ForumId =>
 	typeof v === 'string' && (FORUM_IDS as readonly string[]).includes(v);
 
-type Chapter = { at: number; eyebrow: string; title: string; body: string };
+/** `tagline`: an optional short line under the body (shown on the opening chapter). */
+type Chapter = { at: number; eyebrow: string; title: string; body: string; tagline?: string };
 type Stat = { value: number; prefix?: string; suffix?: string; label: string };
 
 export type Forum = {
