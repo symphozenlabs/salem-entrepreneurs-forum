@@ -4,7 +4,9 @@ import { paginate } from '#lib/paging.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { memberProfile, user } from '#lib/server/db/schema.ts';
-import { resetMemberPassword } from '#lib/server/members.ts';
+import { addMember, emailLogin, resetMemberPassword } from '#lib/server/members.ts';
+import { checkMember, readMembersCsv, type Raw } from '#lib/server/member-import.ts';
+import { industryFrom } from '#lib/membership.ts';
 import { isHub } from '#lib/network.ts';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -46,7 +48,73 @@ export const load: PageServerLoad = async ({ url }) => {
 	return { members: items, pager, q };
 };
 
+const FIELDS = [
+	'name',
+	'email',
+	'phone',
+	'business',
+	'hub',
+	'joinedOn',
+	'designation',
+	'city',
+	'instagram',
+	'website'
+] as const;
+
 export const actions: Actions = {
+	add: async ({ request }) => {
+		const data = await request.formData();
+		const raw = Object.fromEntries(
+			FIELDS.map((k) => [k, String(data.get(k) ?? '')])
+		) as Partial<Raw>;
+		raw.industry = industryFrom(data);
+		const checked = checkMember(raw);
+		if (!checked.ok)
+			return fail(400, {
+				add: { errors: checked.errors, values: { ...raw, industry: raw.industry } }
+			});
+		const r = await addMember(checked.member);
+		if ('error' in r) return fail(400, { add: { errors: { email: r.error }, values: raw } });
+		return {
+			added: { ...r.credentials, phone: checked.member.phone, memberNumber: r.memberNumber }
+		};
+	},
+
+	import: async ({ request }) => {
+		const file = (await request.formData()).get('file');
+		if (!(file instanceof File) || !file.size)
+			return fail(400, { imported: { error: 'Choose the CSV file to upload.' } });
+		if (file.size > 1_000_000)
+			return fail(400, { imported: { error: 'That file is too large — keep it under 1 MB.' } });
+		if (!/\.csv$/i.test(file.name) && !file.type.includes('csv'))
+			return fail(400, {
+				imported: {
+					error: 'Upload a CSV file. In Excel or Google Sheets: File → Save as / Download → CSV.'
+				}
+			});
+		const taken = new Set(
+			(await db.select({ email: user.email }).from(user)).map((u) => u.email.toLowerCase())
+		);
+		const read = readMembersCsv(await file.text(), taken);
+		if ('error' in read) return fail(400, { imported: { error: read.error } });
+		if ('problems' in read) return fail(400, { imported: { problems: read.problems } });
+
+		// One at a time, so member numbers follow joining dates; emails go out afterwards.
+		const added = [];
+		const failed: string[] = [];
+		for (const m of read.members) {
+			const r = await addMember(m, { email: false });
+			if (r.error !== undefined) failed.push(r.error);
+			else added.push({ ...r.credentials, phone: m.phone, memberNumber: r.memberNumber });
+		}
+		for (let i = 0; i < added.length; i += 5) {
+			const batch = added.slice(i, i + 5);
+			const sent = await Promise.all(batch.map((a) => emailLogin(a)));
+			sent.forEach((ok, j) => (batch[j].emailed = ok));
+		}
+		return { imported: { added, failed } };
+	},
+
 	hub: async ({ request }) => {
 		const data = await request.formData();
 		const hub = String(data.get('hub') ?? '');

@@ -54,10 +54,104 @@ async function nextMemberSerial(year: string) {
 	return Number(row.value);
 }
 
-const yearInIndia = () =>
-	new Intl.DateTimeFormat('en-IN', { year: 'numeric', timeZone: 'Asia/Kolkata' }).format(
-		new Date()
-	);
+const yearInIndia = (d = new Date()) =>
+	new Intl.DateTimeFormat('en-IN', { year: 'numeric', timeZone: 'Asia/Kolkata' }).format(d);
+
+/** A member's details, as an admin enters them or an application holds them. */
+export type MemberDetails = {
+	name: string;
+	email: string;
+	phone: string;
+	business: string;
+	industry: string;
+	hub: string;
+	designation?: string | null;
+	city?: string | null;
+	website?: string | null;
+	about?: string | null;
+	instagram?: string | null;
+	/** When they joined; their member number takes its year from this. */
+	joinedAt: Date;
+};
+
+/**
+ * Adds the member's profile with the next member number for the year they joined
+ * (SEF-<year>-0001, …), and a membership that runs one period from that date.
+ */
+async function insertProfile(userId: string, m: MemberDetails) {
+	const { period } = await getMembership();
+	const year = yearInIndia(m.joinedAt);
+	// The unique index guards against a number someone typed in by hand; then take the next.
+	for (let attempt = 1; ; attempt++) {
+		const candidate = `SEF-${year}-${String(await nextMemberSerial(year)).padStart(4, '0')}`;
+		try {
+			await db.insert(memberProfile).values({
+				userId,
+				memberNumber: candidate,
+				phone: m.phone,
+				business: m.business,
+				industry: m.industry,
+				designation: m.designation || null,
+				city: m.city || null,
+				website: m.website || null,
+				about: m.about || null,
+				hub: m.hub,
+				instagram: m.instagram || null,
+				joinedAt: m.joinedAt,
+				expiresAt: addMonths(m.joinedAt, periodMonths(period))
+			});
+			return candidate;
+		} catch (e) {
+			if (attempt === 5) throw e;
+		}
+	}
+}
+
+/**
+ * Adds a member directly (from the admin's form or a bulk upload): their login with a
+ * temporary password and their profile. The login is emailed when email is set up.
+ * Pass `email: false` to leave emailing to the caller.
+ */
+export async function addMember(m: MemberDetails, opts: { email?: boolean } = {}) {
+	const email = m.email.toLowerCase();
+	const [taken] = await db.select({ id: user.id }).from(user).where(eq(user.email, email));
+	if (taken) return { error: `An account for ${email} already exists.` };
+
+	const password = generatePassword();
+	let accountId: string | null = null;
+	let memberNumber: string;
+	try {
+		const account = await createAccount({
+			name: m.name,
+			email,
+			password,
+			role: 'member',
+			mustChangePassword: true
+		});
+		accountId = account.id;
+		memberNumber = await insertProfile(account.id, { ...m, email });
+	} catch (e) {
+		console.error('[add member] failed, rolling back:', e);
+		if (accountId) await db.delete(user).where(eq(user.id, accountId));
+		return { error: `Couldn’t add ${m.name}. Please try again.` };
+	}
+	const emailed =
+		opts.email === false
+			? false
+			: await sendEmail(credentialsEmail({ name: m.name, email, password, memberNumber }));
+	return {
+		credentials: { name: m.name, email, password, emailed } satisfies Credentials,
+		memberNumber
+	};
+}
+
+/** Emails a new member their login; true when it was sent. */
+export const emailLogin = (c: {
+	name: string;
+	email: string;
+	password: string;
+	memberNumber: string;
+}) => sendEmail(credentialsEmail(c));
 
 /** Whether a UTR was already used by another payment that isn't rejected. */
 export async function utrInUse(utr: string, exceptPaymentId?: number) {
@@ -121,32 +215,20 @@ export async function approveApplication(id: number, adminId: string) {
 		});
 		accountId = account.id;
 
-		const { period } = await getMembership();
-		const year = yearInIndia();
-		// The unique index guards against a number someone typed in by hand; then take the next.
-		for (let attempt = 1; attempt <= 5 && !memberNumber; attempt++) {
-			const candidate = `SEF-${year}-${String(await nextMemberSerial(year)).padStart(4, '0')}`;
-			try {
-				await db.insert(memberProfile).values({
-					userId: account.id,
-					memberNumber: candidate,
-					phone: app.phone,
-					business: app.business,
-					industry: app.industry,
-					designation: app.designation,
-					city: app.city,
-					website: app.website,
-					about: app.about,
-					hub: app.hub,
-					instagram: app.instagram,
-					joinedAt: now,
-					expiresAt: addMonths(now, periodMonths(period))
-				});
-				memberNumber = candidate;
-			} catch (e) {
-				if (attempt === 5) throw e;
-			}
-		}
+		memberNumber = await insertProfile(account.id, {
+			name: app.name,
+			email,
+			phone: app.phone,
+			business: app.business,
+			industry: app.industry,
+			designation: app.designation,
+			city: app.city,
+			website: app.website,
+			about: app.about,
+			hub: app.hub,
+			instagram: app.instagram,
+			joinedAt: now
+		});
 
 		await db
 			.update(membershipApplication)
