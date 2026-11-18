@@ -51,9 +51,7 @@
 			<div>
 				<p class="eyebrow text-brass-300">Secretariat</p>
 				<address class="mt-6 text-sm leading-relaxed text-ivory-200/70 not-italic">
-					{#each contact.address as line (line)}{line}<br />{/each}
-					<a href={contact.phoneHref} class="mt-4 inline-block hover:text-ivory-50"
-						>{contact.phone}</a
+					<a href={contact.phoneHref} class="inline-block hover:text-ivory-50">{contact.phone}</a
 					><br />
 					<a href="mailto:{contact.email}" class="hover:text-ivory-50">{contact.email}</a>
 				</address>

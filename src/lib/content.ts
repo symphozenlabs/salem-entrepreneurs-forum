@@ -10,11 +10,10 @@ export const brand = {
 };
 
 export const contact = {
-	address: ['4th Floor, Apex Business Center', 'Fairlands Main Road', 'Salem 636016, Tamil Nadu'],
-	phone: '+91 98427 88990',
-	phoneHref: 'tel:+919842788990',
-	whatsapp: 'https://wa.me/919842788990',
-	email: 'connect@salementrepreneursclub.com'
+	phone: '+91 93635 36239',
+	phoneHref: 'tel:+919363536239',
+	whatsapp: 'https://wa.me/919363536239',
+	email: 'salementrepreneursforum@gmail.com'
 };
 
 export const nav = [
@@ -114,22 +113,14 @@ export const REFERRAL_PERCENT = 10;
 /** ₹5,000 · ₹1,00,000 (Indian digit grouping). */
 export const rupees = (n: number) => '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
-export const privileges = (m: Membership) => [
-	{
-		n: '01',
-		title: 'Digital Member Card',
-		body: 'A gold-foiled digital pass with a QR code that links to your verified profile and portfolio.'
-	},
-	{
-		n: '02',
-		title: 'Referral Rewards',
-		body: `Earn ${REFERRAL_PERCENT}% — ${rupees(Math.round((m.fee * REFERRAL_PERCENT) / 100))} — for every entrepreneur you bring into the forum.`
-	},
-	{
-		n: '03',
-		title: 'Conclave Seating',
-		body: 'Complimentary or subsidised seats at conclaves, masterclasses and roundtables.'
-	}
+/** What membership includes, shown beside the member card. */
+export const privileges = [
+	'Monthly Casual Meets',
+	'Online Branding via Instagram',
+	'Offline Branding in Expo & Business Conclave',
+	'Members Mental Healing Programs',
+	'Sports Activities',
+	'Monthly Business Retreat & Travel Experience'
 ];
 
 /**

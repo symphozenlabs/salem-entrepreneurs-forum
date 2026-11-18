@@ -21,6 +21,6 @@
 {#if data.events.length}
 	<Events events={data.events} />
 {/if}
-<Privileges membership={data.membership} />
+<Privileges />
 <Membership membership={data.membership} payment={data.payment} qrSvg={data.qrSvg} />
 <Contact {form} />
