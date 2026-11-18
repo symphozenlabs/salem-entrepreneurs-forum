@@ -139,7 +139,9 @@ export const chapters = [
 		at: 0.22,
 		eyebrow: 'Multiple industries',
 		title: 'Looms. Steel. Sago. Code.',
-		body: '150+ founders who build what Tamil Nadu runs on.'
+		body: 'From traditional looms 🧵 to modern technology, Tamil Nadu thrives on diverse industries and entrepreneurial spirit.',
+		tagline:
+			'Celebrating 150+ founders shaping industries, creating opportunities, and driving growth.'
 	},
 	{
 		at: 0.4,
