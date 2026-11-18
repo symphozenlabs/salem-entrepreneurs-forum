@@ -146,8 +146,8 @@ export const chapters = [
 	{
 		at: 0.4,
 		eyebrow: 'The gathering',
-		title: 'We talk more than business.',
-		body: 'Mental health, business challenges — and a few brain games.'
+		title: 'We talk more than Business.',
+		body: 'Collaborations, Sports, Mental Healing Programs, Business Retreat & Travel Experiences.'
 	},
 	{
 		at: 0.58,
