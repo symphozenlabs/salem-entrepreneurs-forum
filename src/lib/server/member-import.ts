@@ -4,15 +4,18 @@ import { hubs, isHub } from '#lib/network.ts';
 import { instagramUrl } from '#lib/membership.ts';
 import type { MemberDetails } from '#lib/server/members.ts';
 
-/** The spreadsheet's columns, in the template's order. `*` marks the required ones. */
+/**
+ * The spreadsheet's columns, in the template's order. Only name, email and phone are needed
+ * to add someone; members fill in the rest (business, category) from their profile.
+ */
 export const COLUMNS = [
 	{ key: 'name', label: 'Name', required: true },
 	{ key: 'email', label: 'Email', required: true },
 	{ key: 'phone', label: 'Phone', required: true },
-	{ key: 'business', label: 'Business', required: true },
-	{ key: 'industry', label: 'Category', required: true },
-	{ key: 'hub', label: 'Hub', required: true },
-	{ key: 'joinedOn', label: 'Joining date', required: true },
+	{ key: 'business', label: 'Business', required: false },
+	{ key: 'industry', label: 'Category', required: false },
+	{ key: 'hub', label: 'Hub', required: false },
+	{ key: 'joinedOn', label: 'Joining date', required: false },
 	{ key: 'designation', label: 'Designation', required: false },
 	{ key: 'city', label: 'City', required: false },
 	{ key: 'instagram', label: 'Instagram', required: false },
@@ -53,7 +56,9 @@ export function parseDay(input: string): Date | null {
 
 /** Checks one member's details. Returns what to save, or what to fix per field. */
 export function checkMember(
-	raw: Partial<Raw>
+	raw: Partial<Raw>,
+	/** Bulk upload: business and category may be blank, hub defaults from the city (else Salem), joining date to today. */
+	{ fromFile = false }: { fromFile?: boolean } = {}
 ): { ok: true; member: MemberDetails } | { ok: false; errors: Partial<Record<keyof Raw, string>> } {
 	const v = Object.fromEntries(COLUMNS.map((c) => [c.key, String(raw[c.key] ?? '')])) as Raw;
 	const errors: Partial<Record<keyof Raw, string>> = {};
@@ -63,16 +68,17 @@ export function checkMember(
 	const phone = clean(v.phone, 20);
 	const business = clean(v.business, 120);
 	const industry = clean(v.industry, 60);
-	const hub = hubs.find((h) => h.toLowerCase() === clean(v.hub).toLowerCase()) ?? '';
+	const hubFrom = (s: string) => hubs.find((h) => h.toLowerCase() === clean(s).toLowerCase());
+	const hub = hubFrom(v.hub) ?? (fromFile && !v.hub.trim() ? (hubFrom(v.city) ?? 'Salem') : '');
 	const joinedAt = v.joinedOn.trim() ? parseDay(v.joinedOn) : new Date();
 
 	if (!name) errors.name = 'Enter the name.';
 	if (!isEmail(email)) errors.email = 'Enter a valid email — the login is sent here.';
 	if (phone.replace(/\D/g, '').length < 10) errors.phone = 'Enter a 10-digit mobile number.';
-	if (!business) errors.business = 'Enter the business name.';
-	if (!industry) errors.industry = 'Enter the category.';
+	if (!business && !fromFile) errors.business = 'Enter the business name.';
+	if (!industry && !fromFile) errors.industry = 'Enter the category.';
 	if (!isHub(hub)) errors.hub = `Hub must be ${hubs.join(', ')}.`;
-	if (!joinedAt) errors.joinedOn = 'Enter the joining date as DD-MM-YYYY.';
+	if (!joinedAt) errors.joinedOn = 'Enter the joining date as DD-MM-YYYY (e.g. 15-03-2024).';
 	else if (joinedAt.getTime() > Date.now() + 86_400_000)
 		errors.joinedOn = 'The joining date can’t be in the future.';
 	const instagram = v.instagram.trim() ? instagramUrl(v.instagram) : null;
@@ -131,7 +137,7 @@ export function parseCsv(text: string): string[][] {
 		row.push(field);
 		rows.push(row);
 	}
-	return rows.filter((r) => r.some((f) => f.trim()));
+	return rows;
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
@@ -148,6 +154,11 @@ const ALIASES: Record<string, (typeof COLUMNS)[number]['key']> = {
 	whatsapp: 'phone',
 	businessname: 'business',
 	company: 'business',
+	companyname: 'business',
+	organization: 'business',
+	organisation: 'business',
+	organizationcompanyname: 'business',
+	organisationcompanyname: 'business',
 	industry: 'industry',
 	dateofjoining: 'joinedOn',
 	joiningdate: 'joinedOn',
@@ -169,10 +180,10 @@ export type RowProblem = { row: number; name: string; problems: string[] };
 export function readMembersCsv(
 	text: string,
 	takenEmails: Set<string>,
-	{ byJoiningDate }: { byJoiningDate: boolean }
+	{ byJoiningDate, skipProblems = false }: { byJoiningDate: boolean; skipProblems?: boolean }
 ) {
 	const rows = parseCsv(text);
-	if (rows.length < 2)
+	if (rows.filter((r) => r.some((f) => f.trim())).length < 2)
 		return { error: 'The file has no members in it — check it has a header row.' };
 	const keys = rows[0].map((h) => ALIASES[norm(h)]);
 	const missing = COLUMNS.filter((c) => c.required && !keys.includes(c.key)).map((c) => c.label);
@@ -181,9 +192,10 @@ export function readMembersCsv(
 			error: `The file is missing these columns: ${missing.join(', ')}. Use the template’s header row.`
 		};
 	const body = rows.slice(1);
-	if (body.length > MAX_ROWS)
+	const filled = body.filter((r) => r.some((f) => f.trim())).length;
+	if (filled > MAX_ROWS)
 		return {
-			error: `Upload at most ${MAX_ROWS} members at a time — this file has ${body.length}.`
+			error: `Upload at most ${MAX_ROWS} members at a time — this file has ${filled}.`
 		};
 
 	const label = Object.fromEntries(COLUMNS.map((c) => [c.key, c.label]));
@@ -193,7 +205,9 @@ export function readMembersCsv(
 	body.forEach((cells, i) => {
 		const raw: Partial<Raw> = {};
 		keys.forEach((k, j) => k && (raw[k] = cells[j] ?? ''));
-		const r = checkMember(raw);
+		// A row with no name, email or phone is an empty form response: leave it out.
+		if (![raw.name, raw.email, raw.phone].some((x) => x?.trim())) return;
+		const r = checkMember(raw, { fromFile: true });
 		const issues = r.ok ? [] : Object.entries(r.errors).map(([k, e]) => `${label[k]}: ${e}`);
 		const email = (raw.email ?? '').trim().toLowerCase();
 		if (email && takenEmails.has(email))
@@ -204,9 +218,10 @@ export function readMembersCsv(
 			problems.push({ row: i + 2, name: (raw.name ?? '').trim(), problems: issues });
 		else if (r.ok) members.push(r.member);
 	});
-	if (problems.length) return { problems };
+	if (problems.length && !skipProblems) return { problems };
 	// First upload: earlier joiners get the earlier member numbers. Later: the file's order.
 	return {
+		skipped: problems,
 		members: byJoiningDate
 			? members.sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())
 			: members

@@ -116,6 +116,13 @@
 				only once (you can always use “Reset password” later).
 			</p>
 		{/if}
+		{#if imported.skipped?.length}
+			<p class="mt-2 text-sm text-stone-muted">
+				Skipped rows: {imported.skipped
+					.map((p) => `${p.row}${p.name ? ` (${p.name})` : ''}`)
+					.join(', ')}.
+			</p>
+		{/if}
 		{#if imported.failed.length}
 			<p class="mt-2 text-sm text-laterite-500">Not added: {imported.failed.join(' ')}</p>
 		{/if}
@@ -206,8 +213,10 @@
 				> and open it in Excel or Google Sheets.
 			</li>
 			<li>
-				One member per row. Required: Name, Email, Phone, Business, Category, Hub (Salem, Coimbatore
-				or Tamil Nadu) and Joining date (DD-MM-YYYY). Delete the example row.
+				One member per row. Only <strong class="text-ink-900">Name, Email and Phone</strong> are needed
+				— members add their business and category from their profile. Hub (Salem, Coimbatore or Tamil
+				Nadu) defaults to the city, else Salem; Joining date (DD-MM-YYYY) defaults to today. A Google
+				Form export works as it is. Delete the example row.
 			</li>
 			<li>Save it as CSV (File → Save as / Download → CSV) and upload it here.</li>
 		</ol>
@@ -242,6 +251,16 @@
 					{/each}
 				</ul>
 			</div>
+		{/if}
+		{#if problems.length}
+			<label class="mt-4 flex items-start gap-2 text-sm">
+				<input type="checkbox" name="skipProblems" class="mt-0.5" />
+				<span
+					>Add everyone else now and skip the {problems.length} row{problems.length === 1
+						? ''
+						: 's'} above (add them later, one by one or in another file).</span
+				>
+			</label>
 		{/if}
 		<div class="mt-6 flex gap-2">
 			<button disabled={busy} class="btn-primary">{busy ? 'Uploading…' : 'Upload members'}</button>

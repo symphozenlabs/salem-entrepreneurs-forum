@@ -75,6 +75,17 @@
 	</p>
 {/if}
 
+{#if !data.me.business || !data.me.industry}
+	<p class="mb-8 rounded-md bg-brass-200/40 px-4 py-3 text-sm text-ink-900" role="status">
+		Your profile is missing your {!data.me.business && !data.me.industry
+			? 'business and category'
+			: !data.me.business
+				? 'business name'
+				: 'category'}. <a href="/member/profile" class="font-semibold underline">Add it now</a> so members
+		can find you.
+	</p>
+{/if}
+
 <p class="eyebrow text-brass-600">Overview</p>
 <h1 class="display mt-2 text-4xl">Hello, {data.me.name.split(' ')[0]}.</h1>
 
