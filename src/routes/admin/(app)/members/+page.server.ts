@@ -82,7 +82,9 @@ export const actions: Actions = {
 	},
 
 	import: async ({ request }) => {
-		const file = (await request.formData()).get('file');
+		const form = await request.formData();
+		const file = form.get('file');
+		const skipProblems = form.get('skipProblems') === 'on';
 		if (!(file instanceof File) || !file.size)
 			return fail(400, { imported: { error: 'Choose the CSV file to upload.' } });
 		if (file.size > 1_000_000)
@@ -97,7 +99,7 @@ export const actions: Actions = {
 			(await db.select({ email: user.email }).from(user)).map((u) => u.email.toLowerCase())
 		);
 		const first = !(await firstImportAt());
-		const read = readMembersCsv(await file.text(), taken, { byJoiningDate: first });
+		const read = readMembersCsv(await file.text(), taken, { byJoiningDate: first, skipProblems });
 		if ('error' in read) return fail(400, { imported: { error: read.error } });
 		if ('problems' in read) return fail(400, { imported: { problems: read.problems } });
 
@@ -115,7 +117,7 @@ export const actions: Actions = {
 			sent.forEach((ok, j) => (batch[j].emailed = ok));
 		}
 		if (first && added.length) await markFirstImport();
-		return { imported: { added, failed, byJoiningDate: first } };
+		return { imported: { added, failed, skipped: read.skipped, byJoiningDate: first } };
 	},
 
 	hub: async ({ request }) => {
