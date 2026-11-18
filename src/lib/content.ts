@@ -158,13 +158,15 @@ export const chapters = [
 	{
 		at: 0.76,
 		eyebrow: 'The network',
-		title: '₹12 Cr of trust, in motion.',
-		body: 'Exclusive support for our online and offline members.'
+		title: '150+ Members in Salem.',
+		body: 'Exclusive Branding & Marketing Support for each Member, both online and offline.'
 	},
 	{
 		at: 0.93,
 		eyebrow: 'Your seat',
 		title: 'Meet. Learn. Collaborate. Grow.',
-		body: 'For like-minded people taking their business to the next level.'
+		body: 'Surround yourself with like-minded entrepreneurs, build meaningful connections, exchange ideas, and unlock new business opportunities.',
+		tagline:
+			'Salem Entrepreneurs Forum – Where the right connections create the next big opportunities.'
 	}
 ];
