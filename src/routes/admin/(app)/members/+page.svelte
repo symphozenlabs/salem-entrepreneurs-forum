@@ -144,8 +144,8 @@
 	>
 		<h2 class="font-semibold">Add a member</h2>
 		<p class="mt-1 text-sm text-stone-muted">
-			They get a login with a temporary password. The member number comes from the joining date —
-			e.g. someone who joined in 2024 gets SEF-2024-…
+			They get a login with a temporary password and the next member number for their hub — SEF-…
+			for Salem, CEF-… for Coimbatore, TNEF-… for Tamil Nadu.
 		</p>
 		<div class="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2">
 			{#each [['name', 'Full name *', 'text'], ['email', 'Email *', 'email'], ['phone', 'Mobile number *', 'tel'], ['business', 'Business name *', 'text']] as [k, l, t] (k)}
@@ -212,8 +212,8 @@
 			<li>Save it as CSV (File → Save as / Download → CSV) and upload it here.</li>
 		</ol>
 		<p class="mt-3 text-sm text-stone-muted">
-			Member numbers follow joining dates (earliest first). If any row has a problem, nothing is
-			added — fix the rows listed and upload again. Up to 200 members at a time.
+			Member numbers follow joining dates (earliest first), in each hub’s series. If any row has a
+			problem, nothing is added — fix the rows listed and upload again. Up to 200 members at a time.
 		</p>
 		<input
 			type="file"

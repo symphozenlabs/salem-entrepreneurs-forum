@@ -20,6 +20,7 @@ import {
 } from '#lib/server/email.ts';
 import { addMonths, periodMonths } from '#lib/membership.ts';
 import { rupees } from '#lib/content.ts';
+import { hubPrefix } from '#lib/network.ts';
 
 /** Easy to read aloud or type from a phone: no 0/O, 1/l/I. e.g. "k7mp-4qx2-h9tw". */
 export function generatePassword() {
@@ -29,21 +30,23 @@ export function generatePassword() {
 	return `${group()}-${group()}-${group()}`;
 }
 
+/** The first serial in every hub's series: SEF-260001, CEF-260001, TNEF-260001. */
+const FIRST_SERIAL = 260001;
+
 /**
- * The next member number for the year, from a counter that only ever goes up, so a
- * removed member's number is never handed out again. The counter lives in
- * site_setting ("member-serial-2026") and is bumped in one statement, so approvals
- * at the same moment get different numbers. A new year's counter starts above any
- * numbers already issued that year.
+ * The next serial in a hub's series, from a counter that only ever goes up, so a removed
+ * member's number is never handed out again. The counter lives in site_setting
+ * ("member-serial-SEF") and is bumped in one statement, so members added at the same
+ * moment get different numbers. It starts above any number already issued in the series.
  */
-async function nextMemberSerial(year: string) {
-	const issued = sql`(select coalesce(max(cast(split_part(${memberProfile.memberNumber}, '-', 3) as integer)), 0)
-		from ${memberProfile} where ${memberProfile.memberNumber} like ${`SEF-${year}-%`})`;
+async function nextMemberSerial(prefix: string) {
+	const issued = sql`(select coalesce(max(cast(split_part(${memberProfile.memberNumber}, '-', 2) as integer)), 0)
+		from ${memberProfile} where ${memberProfile.memberNumber} ~ ${`^${prefix}-[0-9]+$`})`;
 	const [row] = await db
 		.insert(siteSetting)
 		.values({
-			key: `member-serial-${year}`,
-			value: sql`to_jsonb(${issued} + 1)`,
+			key: `member-serial-${prefix}`,
+			value: sql`to_jsonb(greatest(${issued} + 1, ${FIRST_SERIAL}::int))`,
 			updatedAt: new Date()
 		})
 		.onConflictDoUpdate({
@@ -53,9 +56,6 @@ async function nextMemberSerial(year: string) {
 		.returning({ value: siteSetting.value });
 	return Number(row.value);
 }
-
-const yearInIndia = (d = new Date()) =>
-	new Intl.DateTimeFormat('en-IN', { year: 'numeric', timeZone: 'Asia/Kolkata' }).format(d);
 
 /** A member's details, as an admin enters them or an application holds them. */
 export type MemberDetails = {
@@ -70,20 +70,21 @@ export type MemberDetails = {
 	website?: string | null;
 	about?: string | null;
 	instagram?: string | null;
-	/** When they joined; their member number takes its year from this. */
+	/** When they joined. */
 	joinedAt: Date;
 };
 
 /**
- * Adds the member's profile with the next member number for the year they joined
- * (SEF-<year>-0001, …), and a membership that runs one period from that date.
+ * Adds the member's profile with the next number in their hub's series (SEF-260001 for
+ * Salem, CEF-… for Coimbatore, TNEF-… for Tamil Nadu), and a membership that runs one
+ * period from the day they joined.
  */
 async function insertProfile(userId: string, m: MemberDetails) {
 	const { period } = await getMembership();
-	const year = yearInIndia(m.joinedAt);
+	const prefix = hubPrefix(m.hub);
 	// The unique index guards against a number someone typed in by hand; then take the next.
 	for (let attempt = 1; ; attempt++) {
-		const candidate = `SEF-${year}-${String(await nextMemberSerial(year)).padStart(4, '0')}`;
+		const candidate = `${prefix}-${await nextMemberSerial(prefix)}`;
 		try {
 			await db.insert(memberProfile).values({
 				userId,

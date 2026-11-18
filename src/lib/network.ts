@@ -6,6 +6,10 @@ export const hubs = ['Salem', 'Coimbatore', 'Tamil Nadu'] as const;
 export type Hub = (typeof hubs)[number];
 export const isHub = (v: unknown): v is Hub => hubs.includes(v as Hub);
 
+/** Each hub's member-number series: SEF-260001, CEF-260001, TNEF-260001. */
+const PREFIX: Record<Hub, string> = { Salem: 'SEF', Coimbatore: 'CEF', 'Tamil Nadu': 'TNEF' };
+export const hubPrefix = (hub: string) => (isHub(hub) ? PREFIX[hub] : 'SEF');
+
 export const connectKinds = {
 	self: { label: 'For myself', hint: 'You need their product or service' },
 	referral: { label: 'Referral', hint: 'Someone you know needs it — share their contact' }

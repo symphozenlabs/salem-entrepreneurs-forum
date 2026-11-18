@@ -187,7 +187,7 @@ export const memberProfile = pgTable('member_profile', {
 	userId: text('user_id')
 		.primaryKey()
 		.references(() => user.id, { onDelete: 'cascade' }),
-	/** SEF-2026-0001 */
+	/** SEF-260001 (Salem), CEF-… (Coimbatore), TNEF-… (Tamil Nadu) */
 	memberNumber: text('member_number').notNull().unique(),
 	phone: text('phone').notNull(),
 	business: text('business').notNull(),
