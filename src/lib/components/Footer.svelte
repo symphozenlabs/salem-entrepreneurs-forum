@@ -57,7 +57,7 @@
 				</address>
 				<a
 					href="/admin/login"
-					class="mt-6 inline-flex rounded-full border border-ivory-100/20 px-5 py-2 text-sm font-semibold text-ivory-100 transition-colors hover:border-brass-400 hover:text-brass-300"
+					class="mt-3 inline-block text-sm text-ivory-200/70 transition-colors hover:text-ivory-50"
 					>Admin login</a
 				>
 			</div>
