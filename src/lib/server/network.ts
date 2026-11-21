@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gt, gte, ilike, lt, lte, ne, or, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
+import { getFeatures } from '#lib/server/settings.ts';
 import {
 	businessTransaction,
 	connect,
@@ -340,9 +341,15 @@ export async function setConnectStatus(me: string, id: number, status: string) {
 
 // ---- Business transactions ------------------------------------------------------
 
-/** Confirms anything left unanswered for AUTO_CONFIRM_DAYS. Runs whenever records are read. */
+/**
+ * Confirms anything left unanswered for AUTO_CONFIRM_DAYS. Runs whenever records are read.
+ * Paused while Transactions is off, and members get the full wait again once it's back on,
+ * since they can't answer a record they can't see.
+ */
 export async function autoConfirmTransactions() {
 	const cutoff = new Date(Date.now() - AUTO_CONFIRM_DAYS * 86_400_000);
+	const { transactions, transactionsOnSince } = await getFeatures();
+	if (!transactions || (transactionsOnSince && new Date(transactionsOnSince) > cutoff)) return;
 	await db
 		.update(businessTransaction)
 		.set({ status: 'confirmed', autoConfirmed: true, respondedAt: new Date() })

@@ -60,7 +60,7 @@ export const isLevelKey = (v: unknown): v is LevelKey => levels.some((l) => l.ke
 
 /** Badge colours per level. */
 export const levelTone: Record<LevelKey, string> = {
-	basic: 'bg-ink-900/5 text-ink-700',
+	basic: 'bg-[#e7e3da] text-[#4f4a40]',
 	bronze: 'bg-[#f3e3d3] text-[#8a5a2b]',
 	silver: 'bg-slate-100 text-slate-700',
 	gold: 'bg-amber-100 text-amber-800',

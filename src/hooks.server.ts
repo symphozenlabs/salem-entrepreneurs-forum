@@ -70,6 +70,16 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 		if (!user) return redirect(`/login?next=${next}`);
 		if (user.role !== 'member') return redirect(user.role === 'admin' ? '/admin' : '/login');
 		if (user.mustChangePassword && path !== PASSWORD_PAGE) return redirect(PASSWORD_PAGE);
+		// Connects and Transactions are closed, form submissions included, while switched off.
+		const connects = under(path, '/member/connects') || under(route, '/member/connects');
+		const transactions =
+			under(path, '/member/transactions') || under(route, '/member/transactions');
+		if (connects || transactions) {
+			const { getFeatures } = await import('#lib/server/settings.ts');
+			const features = await getFeatures();
+			if ((connects && !features.connects) || (transactions && !features.transactions))
+				return redirect('/member');
+		}
 	}
 
 	const response = await svelteKitHandler({ event, resolve, auth, building });

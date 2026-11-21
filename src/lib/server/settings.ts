@@ -58,3 +58,32 @@ export const savePayment = (value: PaymentInfo) => write('payment', value);
 export const firstImportAt = async () =>
 	(await read<string>('members-first-import'))?.value ?? null;
 export const markFirstImport = () => write('members-first-import', new Date().toISOString());
+
+// ---- Member features the admin can switch on and off ----------------------------
+
+export type Features = {
+	connects: boolean;
+	transactions: boolean;
+	/** When transactions were last switched on: the auto-confirm wait restarts from here. */
+	transactionsOnSince: string | null;
+};
+
+const FEATURES_OFF: Features = { connects: false, transactions: false, transactionsOnSince: null };
+
+/** Off until an admin switches them on, and off if the setting can't be read. */
+export async function getFeatures(): Promise<Features> {
+	try {
+		return { ...FEATURES_OFF, ...(await read<Partial<Features>>('member-features'))?.value };
+	} catch (e) {
+		console.error('[settings] member features unavailable:', e);
+		return FEATURES_OFF;
+	}
+}
+
+export async function setFeature(feature: 'connects' | 'transactions', on: boolean) {
+	const current = await getFeatures();
+	const next = { ...current, [feature]: on };
+	if (feature === 'transactions' && on && !current.transactions)
+		next.transactionsOnSince = new Date().toISOString();
+	await write('member-features', next);
+}
