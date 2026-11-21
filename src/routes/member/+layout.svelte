@@ -20,7 +20,7 @@
 	let { data, children }: LayoutProps = $props();
 	let open = $state(false);
 
-	const links = [
+	const allLinks = [
 		{ href: '/member', label: 'Overview', icon: Home },
 		{ href: '/member/connects', label: 'Connects', icon: Handshake },
 		{ href: '/member/transactions', label: 'Transactions', icon: ArrowLeftRight },
@@ -30,6 +30,13 @@
 		{ href: '/member/profile', label: 'My profile', icon: UserRound },
 		{ href: '/member/membership', label: 'Membership', icon: BadgeCheck }
 	];
+	const links = $derived(
+		allLinks.filter(
+			(l) =>
+				(l.href !== '/member/connects' || data.features.connects) &&
+				(l.href !== '/member/transactions' || data.features.transactions)
+		)
+	);
 	const active = (href: string) =>
 		page.url.pathname === href || (href !== '/member' && page.url.pathname.startsWith(href + '/'));
 	const forcedPassword = $derived(page.url.pathname === '/member/password');

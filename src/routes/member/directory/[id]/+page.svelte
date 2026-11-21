@@ -79,10 +79,14 @@
 				</p>
 			{/if}
 			<ContactButtons phone={m.phone} email={m.email} />
-			<a href="/member/connects?view=give&to={m.id}" class="btn-primary w-full">Give a connect</a>
-			<a href="/member/transactions?view=record&with={m.id}" class="btn-quiet w-full"
-				>Record business</a
-			>
+			{#if data.features.connects}
+				<a href="/member/connects?view=give&to={m.id}" class="btn-primary w-full">Give a connect</a>
+			{/if}
+			{#if data.features.transactions}
+				<a href="/member/transactions?view=record&with={m.id}" class="btn-quiet w-full"
+					>Record business</a
+				>
+			{/if}
 		</aside>
 	</div>
 {/if}

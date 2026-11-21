@@ -19,51 +19,67 @@
 			.replace('/', ' / ')
 	);
 	const stats = $derived([
-		{
-			label: 'Connects given',
-			value: String(data.perf.connectsGiven),
-			href: '/member/connects?view=given'
-		},
-		{
-			label: 'Connects received',
-			value: String(data.perf.connectsReceived),
-			href: '/member/connects?view=received'
-		},
-		{
-			label: 'Business given',
-			value: rupees(data.perf.businessGiven),
-			href: '/member/transactions'
-		},
-		{
-			label: 'Business received',
-			value: rupees(data.perf.businessReceived),
-			href: '/member/transactions'
-		}
+		...(data.features.connects
+			? [
+					{
+						label: 'Connects given',
+						value: String(data.perf.connectsGiven),
+						href: '/member/connects?view=given'
+					},
+					{
+						label: 'Connects received',
+						value: String(data.perf.connectsReceived),
+						href: '/member/connects?view=received'
+					}
+				]
+			: []),
+		...(data.features.transactions
+			? [
+					{
+						label: 'Business given',
+						value: rupees(data.perf.businessGiven),
+						href: '/member/transactions'
+					},
+					{
+						label: 'Business received',
+						value: rupees(data.perf.businessReceived),
+						href: '/member/transactions'
+					}
+				]
+			: [])
 	]);
 	const next = $derived(data.points ? nextReward(data.points.available) : undefined);
 	const lv = $derived(
 		data.points ? levelFor(data.points.levelPoints, data.points.levelOverride) : undefined
 	);
-	const actions = [
-		{
-			href: '/member/connects',
-			label: 'Give a connect',
-			hint: 'Pass a lead to a member',
-			icon: Handshake
-		},
-		{
-			href: '/member/transactions',
-			label: 'Record business',
-			hint: 'Thank a member for business',
-			icon: ArrowLeftRight
-		},
+	const actions = $derived([
+		...(data.features.connects
+			? [
+					{
+						href: '/member/connects',
+						label: 'Give a connect',
+						hint: 'Pass a lead to a member',
+						icon: Handshake
+					}
+				]
+			: []),
+		...(data.features.transactions
+			? [
+					{
+						href: '/member/transactions',
+						label: 'Record business',
+						hint: 'Thank a member for business',
+						icon: ArrowLeftRight
+					}
+				]
+			: []),
 		{
 			href: '/member/directory',
 			label: 'Find a member',
 			hint: 'Search by name or industry',
 			icon: Users
 		}
-	];
+	]);
 </script>
 
 {#if page.url.searchParams.has('welcome')}
@@ -91,22 +107,30 @@
 
 <div class="mt-10 grid gap-10 xl:grid-cols-[1fr_24rem]">
 	<div class="space-y-10">
-		<section>
-			<h2 class="text-sm font-semibold tracking-wide text-ink-700">My performance</h2>
-			<div class="mt-4 grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-				{#each stats as s (s.label)}
-					<a
-						href={s.href}
-						class="rounded-lg border border-ink-900/10 bg-white p-5 transition-colors hover:border-brass-400"
-					>
-						<p class="display text-3xl">{s.value}</p>
-						<p class="mt-2 text-sm text-stone-muted">{s.label}</p>
-					</a>
-				{/each}
-			</div>
-		</section>
+		{#if stats.length}
+			<section>
+				<h2 class="text-sm font-semibold tracking-wide text-ink-700">My performance</h2>
+				<div class="mt-4 grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+					{#each stats as s (s.label)}
+						<a
+							href={s.href}
+							class="rounded-lg border border-ink-900/10 bg-white p-5 transition-colors hover:border-brass-400"
+						>
+							<p class="display text-3xl">{s.value}</p>
+							<p class="mt-2 text-sm text-stone-muted">{s.label}</p>
+						</a>
+					{/each}
+				</div>
+			</section>
+		{/if}
 
-		<section class="grid gap-4 sm:grid-cols-3">
+		<section
+			class="grid gap-4 {actions.length === 3
+				? 'sm:grid-cols-3'
+				: actions.length === 2
+					? 'sm:grid-cols-2'
+					: 'max-w-sm'}"
+		>
 			{#each actions as a (a.href)}
 				<a
 					href={a.href}
@@ -119,36 +143,38 @@
 			{/each}
 		</section>
 
-		<section class="rounded-lg border border-ink-900/10 bg-white">
-			<div class="flex items-center justify-between border-b border-ink-900/10 px-5 py-4">
-				<h2 class="font-semibold">Waiting for your confirmation</h2>
-				<a href="/member/transactions" class="text-sm text-brass-600">All transactions</a>
-			</div>
-			{#if data.awaiting.length}
-				<ul class="divide-y divide-ink-900/10">
-					{#each data.awaiting as t (t.id)}
-						<li class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-							<div>
-								<p class="font-medium">
-									{t.direction === 'received'
-										? `${t.otherName} says they gave you ${rupees(t.amount)} of business`
-										: `${t.otherName} says they got ${rupees(t.amount)} of business from you`}
-								</p>
-								<p class="text-sm text-stone-muted">
-									{eventShortDate(t.createdAt)}{t.description ? ` · ${t.description}` : ''}
-								</p>
-							</div>
-							<a href="/member/transactions" class="btn-primary !px-3 !py-1.5">Review</a>
-						</li>
-					{/each}
-				</ul>
-			{:else}
-				<p class="px-5 py-6 text-sm text-stone-muted">
-					Nothing waiting. When a member records business with you, it shows here for you to
-					confirm.
-				</p>
-			{/if}
-		</section>
+		{#if data.features.transactions}
+			<section class="rounded-lg border border-ink-900/10 bg-white">
+				<div class="flex items-center justify-between border-b border-ink-900/10 px-5 py-4">
+					<h2 class="font-semibold">Waiting for your confirmation</h2>
+					<a href="/member/transactions" class="text-sm text-brass-600">All transactions</a>
+				</div>
+				{#if data.awaiting.length}
+					<ul class="divide-y divide-ink-900/10">
+						{#each data.awaiting as t (t.id)}
+							<li class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+								<div>
+									<p class="font-medium">
+										{t.direction === 'received'
+											? `${t.otherName} says they gave you ${rupees(t.amount)} of business`
+											: `${t.otherName} says they got ${rupees(t.amount)} of business from you`}
+									</p>
+									<p class="text-sm text-stone-muted">
+										{eventShortDate(t.createdAt)}{t.description ? ` · ${t.description}` : ''}
+									</p>
+								</div>
+								<a href="/member/transactions" class="btn-primary !px-3 !py-1.5">Review</a>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<p class="px-5 py-6 text-sm text-stone-muted">
+						Nothing waiting. When a member records business with you, it shows here for you to
+						confirm.
+					</p>
+				{/if}
+			</section>
+		{/if}
 	</div>
 
 	<aside>

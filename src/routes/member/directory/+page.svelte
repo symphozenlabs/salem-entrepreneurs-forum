@@ -163,16 +163,22 @@
 						</p>{/if}
 					<div class="mt-auto space-y-3 pt-5">
 						<ContactButtons phone={m.phone} email={m.email} />
-						<div class="flex gap-2">
-							<a
-								href="/member/connects?view=give&to={m.id}"
-								class="btn-primary flex-1 !px-3 !py-2 !text-xs">Give connect</a
-							>
-							<a
-								href="/member/transactions?view=record&with={m.id}"
-								class="btn-quiet flex-1 !px-3 !py-2 !text-xs">Record business</a
-							>
-						</div>
+						{#if data.features.connects || data.features.transactions}
+							<div class="flex gap-2">
+								{#if data.features.connects}
+									<a
+										href="/member/connects?view=give&to={m.id}"
+										class="btn-primary flex-1 !px-3 !py-2 !text-xs">Give connect</a
+									>
+								{/if}
+								{#if data.features.transactions}
+									<a
+										href="/member/transactions?view=record&with={m.id}"
+										class="btn-quiet flex-1 !px-3 !py-2 !text-xs">Record business</a
+									>
+								{/if}
+							</div>
+						{/if}
 					</div>
 				</li>
 			{/each}
@@ -213,10 +219,12 @@
 							</td>
 							<td class="px-4 py-3">
 								<div class="flex justify-end gap-2">
-									<a
-										href="/member/connects?view=give&to={m.id}"
-										class="btn-primary !px-3 !py-1.5 !text-xs whitespace-nowrap">Give connect</a
-									>
+									{#if data.features.connects}
+										<a
+											href="/member/connects?view=give&to={m.id}"
+											class="btn-primary !px-3 !py-1.5 !text-xs whitespace-nowrap">Give connect</a
+										>
+									{/if}
 									<a href="/member/directory/{m.id}" class="btn-quiet !px-3 !py-1.5 !text-xs"
 										>Profile</a
 									>

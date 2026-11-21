@@ -55,6 +55,11 @@
 					><br />
 					<a href="mailto:{contact.email}" class="hover:text-ivory-50">{contact.email}</a>
 				</address>
+				<a
+					href="/admin/login"
+					class="mt-6 inline-flex rounded-full border border-ivory-100/20 px-5 py-2 text-sm font-semibold text-ivory-100 transition-colors hover:border-brass-400 hover:text-brass-300"
+					>Admin login</a
+				>
 			</div>
 		</div>
 
