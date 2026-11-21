@@ -143,7 +143,23 @@
 		</section>
 	</div>
 
-	<aside class="h-fit">
+	<aside class="h-fit space-y-6">
+		{#if data.posterVersion}
+			<section class="rounded-lg border border-ink-900/10 bg-white p-4">
+				<h2 class="font-semibold">Your member poster</h2>
+				<img
+					src="/media/posters/{data.me.id}?v={data.posterVersion}"
+					alt="Your new member poster"
+					class="mt-3 w-full rounded"
+				/>
+				<a
+					href="/media/posters/{data.me.id}?download&v={data.posterVersion}"
+					download
+					data-sveltekit-reload
+					class="btn-primary mt-3 w-full">Download poster</a
+				>
+			</section>
+		{/if}
 		<PaymentPanel
 			payment={data.payment}
 			amount={data.membership.fee}

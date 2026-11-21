@@ -37,6 +37,11 @@
 {#if form?.approved}
 	<div class="mt-6">
 		<CredentialsNotice {...form.approved} />
+		{#if form.approved.memberId}
+			<a href="/admin/members/{form.approved.memberId}/poster" class="btn-primary mt-3"
+				>Create new member poster</a
+			>
+		{/if}
 	</div>
 {/if}
 {#if form?.rejected}
@@ -195,6 +200,11 @@
 						</div>{/if}
 				</dl>
 
+				{#if app.status === 'approved' && app.userId}
+					<div class="mt-5 border-t border-ink-900/10 pt-4">
+						<a href="/admin/members/{app.userId}/poster" class="btn-quiet">Create poster</a>
+					</div>
+				{/if}
 				{#if app.status === 'pending'}
 					<div class="mt-5 border-t border-ink-900/10 pt-4">
 						{#if rejecting === app.id}

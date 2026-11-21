@@ -445,6 +445,7 @@
 						</td>
 						<td class="px-4 py-4">
 							<div class="flex flex-wrap justify-end gap-2">
+								<a href="/admin/members/{m.id}/poster" class="btn-quiet !px-3 !py-1.5">Poster</a>
 								<form method="POST" action="?/reset" use:enhance>
 									<input type="hidden" name="id" value={m.id} />
 									<button class="btn-quiet !px-3 !py-1.5">Reset password</button>

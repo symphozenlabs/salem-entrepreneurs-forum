@@ -236,6 +236,16 @@ export const memberPhoto = pgTable('member_photo', {
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
+/** The member's "New Member" poster, as an admin last saved it. */
+export const memberPoster = pgTable('member_poster', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	mime: text('mime').notNull(),
+	data: text('data').notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
 // ---- Member business activity -------------------------------------------------
 
 /**

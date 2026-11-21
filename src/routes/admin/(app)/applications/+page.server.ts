@@ -59,11 +59,16 @@ export const actions: Actions = {
 		const result = await approveApplication(id, locals.user!.id);
 		if ('error' in result) return fail(400, { error: result.error });
 		const [app] = await db
-			.select({ phone: membershipApplication.phone })
+			.select({ phone: membershipApplication.phone, userId: membershipApplication.userId })
 			.from(membershipApplication)
 			.where(eq(membershipApplication.id, id));
 		return {
-			approved: { ...result.credentials, phone: app?.phone, memberNumber: result.memberNumber }
+			approved: {
+				...result.credentials,
+				phone: app?.phone,
+				memberNumber: result.memberNumber,
+				memberId: app?.userId
+			}
 		};
 	},
 	referrer: async ({ request }) => {
