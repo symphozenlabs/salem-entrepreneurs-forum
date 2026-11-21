@@ -87,3 +87,16 @@ export async function setFeature(feature: 'connects' | 'transactions', on: boole
 		next.transactionsOnSince = new Date().toISOString();
 	await write('member-features', next);
 }
+
+// ---- New-member posters ----------------------------------------------------------
+
+/** The "Celebrating 130+ Members" figure on every poster. */
+export async function getPosterCount() {
+	try {
+		return (await read<string>('poster-member-count'))?.value || '130+';
+	} catch (e) {
+		console.error('[settings] poster count unavailable:', e);
+		return '130+';
+	}
+}
+export const savePosterCount = (value: string) => write('poster-member-count', value);

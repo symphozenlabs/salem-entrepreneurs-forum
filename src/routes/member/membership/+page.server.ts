@@ -2,7 +2,7 @@ import { fail } from '@sveltejs/kit';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
-import { payment, paymentProof } from '#lib/server/db/schema.ts';
+import { memberPoster, payment, paymentProof } from '#lib/server/db/schema.ts';
 import { getMembership, getPayment } from '#lib/server/settings.ts';
 import { upiQrSvg } from '#lib/server/qr.ts';
 import { utrInUse } from '#lib/server/members.ts';
@@ -26,16 +26,21 @@ const myPayments = (userId: string) =>
 		.orderBy(desc(payment.createdAt));
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
-	const [membership, paymentInfo, payments] = await Promise.all([
+	const [membership, paymentInfo, payments, posters] = await Promise.all([
 		getMembership(),
 		getPayment(),
-		myPayments(locals.user!.id)
+		myPayments(locals.user!.id),
+		db
+			.select({ updatedAt: memberPoster.updatedAt })
+			.from(memberPoster)
+			.where(eq(memberPoster.userId, locals.user!.id))
 	]);
 	const note = `SEF membership renewal ${(await parent()).me.memberNumber}`;
 	return {
 		membership,
 		payment: paymentInfo,
 		payments,
+		posterVersion: posters[0]?.updatedAt.getTime() ?? null,
 		note,
 		qrSvg: await upiQrSvg(paymentInfo, membership.fee, note)
 	};

@@ -6,6 +6,10 @@ export const hubs = ['Salem', 'Coimbatore', 'Tamil Nadu'] as const;
 export type Hub = (typeof hubs)[number];
 export const isHub = (v: unknown): v is Hub => hubs.includes(v as Hub);
 
+/** The forum a hub belongs to. */
+export const hubForum = (hub: string) =>
+	hub === 'Coimbatore' ? 'coimbatore' : hub === 'Tamil Nadu' ? 'tamilnadu' : 'salem';
+
 /** Each hub's member-number series: SEF-260001, CEF-260001, TNEF-260001. */
 const PREFIX: Record<Hub, string> = { Salem: 'SEF', Coimbatore: 'CEF', 'Tamil Nadu': 'TNEF' };
 export const hubPrefix = (hub: string) => (isHub(hub) ? PREFIX[hub] : 'SEF');
