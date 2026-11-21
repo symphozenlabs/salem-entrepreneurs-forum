@@ -74,6 +74,7 @@ export async function getMe(userId: string) {
 	const [me] = await db
 		.select({
 			...profile,
+			instagram: memberProfile.instagram,
 			showInDirectory: memberProfile.showInDirectory,
 			joinedAt: memberProfile.joinedAt,
 			expiresAt: memberProfile.expiresAt

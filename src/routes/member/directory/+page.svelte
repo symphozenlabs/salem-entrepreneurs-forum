@@ -149,7 +149,7 @@
 							<p class="font-semibold hover:text-brass-600">{m.name}</p>
 							<p class="truncate text-sm text-ink-700">{m.business}</p>
 							<p class="text-xs text-stone-muted">
-								{m.hub} hub · {m.industry}{m.city ? ` · ${m.city}` : ''}
+								{m.hub} hub{m.industry ? ` · ${m.industry}` : ''}{m.city ? ` · ${m.city}` : ''}
 							</p>
 						</div>
 					</a>

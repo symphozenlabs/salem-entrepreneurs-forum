@@ -156,7 +156,7 @@
 			name={data.me.name}
 			number={data.me.memberNumber}
 			{validTill}
-			industry="{data.me.industry} · {data.me.business}"
+			industry={[data.me.industry, data.me.business].filter(Boolean).join(' · ')}
 		/>
 		<p class="mt-4 text-center text-sm text-stone-muted">
 			Member since {eventShortDate(data.me.joinedAt)} · valid till {eventShortDate(

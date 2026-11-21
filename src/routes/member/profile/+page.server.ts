@@ -1,20 +1,28 @@
 import { fail } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import type { Actions } from './$types';
 import { db } from '#lib/server/db/index.ts';
 import { memberPhoto, memberProfile, user } from '#lib/server/db/schema.ts';
 import { readImage } from '#lib/server/uploads.ts';
-import { safeUrl } from '#lib/server/admin.ts';
-import { industryFrom } from '#lib/membership.ts';
+import { isEmail, safeUrl } from '#lib/server/admin.ts';
+import {
+	industryFrom,
+	instagramUrl,
+	isPhoneLogin,
+	phoneDigits,
+	phoneLoginEmail
+} from '#lib/membership.ts';
 
 const FIELDS = [
 	'name',
+	'email',
 	'phone',
 	'business',
 	'industry',
 	'designation',
 	'city',
 	'website',
+	'instagram',
 	'about',
 	'offerings',
 	'lookingFor',
@@ -31,12 +39,40 @@ export const actions: Actions = {
 		) as Record<(typeof FIELDS)[number], string>;
 		const errors: Record<string, string> = {};
 		if (!v.name) errors.name = 'Enter your name.';
-		if (v.phone.replace(/\D/g, '').length < 10) errors.phone = 'Enter a 10-digit mobile number.';
-		if (!v.business) errors.business = 'Enter your business name.';
+		const digits = phoneDigits(v.phone);
+		if (!digits) errors.phone = 'Enter a 10-digit mobile number.';
+		v.email = v.email.toLowerCase();
+		if (v.email && (!isEmail(v.email) || isPhoneLogin(v.email)))
+			errors.email = 'Enter a valid email, or leave it blank to sign in with your mobile number.';
 		v.industry = industryFrom(data);
-		if (!v.industry)
-			errors.industry =
-				data.get('industry') === 'Other' ? 'Type your industry.' : 'Choose your industry.';
+		const instagram = v.instagram ? instagramUrl(v.instagram) : null;
+		if (v.instagram && !instagram)
+			errors.instagram = 'Enter your Instagram handle or profile link.';
+		// Email and mobile number both sign people in, so each can belong to only one account.
+		const login = v.email || (digits ? phoneLoginEmail(digits) : '');
+		if (login) {
+			const [taken] = await db
+				.select({ id: user.id })
+				.from(user)
+				.where(and(eq(user.email, login), ne(user.id, me)));
+			if (taken)
+				errors[v.email ? 'email' : 'phone'] = v.email
+					? 'Another account already uses this email.'
+					: 'Another account already signs in with this number.';
+		}
+		if (digits) {
+			const [taken] = await db
+				.select({ id: memberProfile.userId })
+				.from(memberProfile)
+				.where(
+					and(
+						ne(memberProfile.userId, me),
+						sql`right(regexp_replace(${memberProfile.phone}, '[^0-9]', '', 'g'), 10) = ${digits}`
+					)
+				)
+				.limit(1);
+			if (taken) errors.phone = 'Another member already uses this mobile number.';
+		}
 		const website = safeUrl(v.website);
 		const mapUrl = safeUrl(v.mapUrl);
 		if (mapUrl === undefined) errors.mapUrl = 'Paste the full Google Maps link (https://…).';
@@ -49,7 +85,7 @@ export const actions: Actions = {
 		const photo = upload && !('error' in upload) ? upload : null;
 		if (Object.keys(errors).length) return fail(400, { errors, values: v });
 
-		await db.update(user).set({ name: v.name }).where(eq(user.id, me));
+		await db.update(user).set({ name: v.name, email: login }).where(eq(user.id, me));
 		await db
 			.update(memberProfile)
 			.set({
@@ -59,6 +95,7 @@ export const actions: Actions = {
 				designation: v.designation || null,
 				city: v.city || null,
 				website: website ?? null,
+				instagram,
 				about: v.about || null,
 				offerings: v.offerings || null,
 				lookingFor: v.lookingFor || null,
