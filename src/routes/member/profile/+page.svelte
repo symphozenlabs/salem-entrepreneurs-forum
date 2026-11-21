@@ -43,15 +43,18 @@
 				{#if errors.name}<p class="field-error">{errors.name}</p>{/if}
 			</label>
 			<label class="block">
-				<span class="field-label">{isPhoneLogin(me.email) ? 'You sign in with' : 'Email'}</span>
+				<span class="field-label">Email</span>
 				<input
-					value={loginId(me.email)}
-					disabled
-					class="field-input bg-ivory-100 text-stone-muted"
+					name="email"
+					type="email"
+					autocomplete="email"
+					value={val('email', isPhoneLogin(me.email) ? '' : loginId(me.email))}
+					class="field-input"
 				/>
 				<span class="mt-1.5 block text-xs text-stone-muted"
-					>Ask the secretariat to change your login email.</span
+					>You can sign in with this or your mobile number.</span
 				>
+				{#if errors.email}<p class="field-error">{errors.email}</p>{/if}
 			</label>
 			<label class="block">
 				<span class="field-label">Mobile / WhatsApp *</span>
@@ -74,13 +77,34 @@
 				/>
 			</label>
 			<label class="block">
-				<span class="field-label">Business name *</span>
-				<input name="business" required value={val('business', me.business)} class="field-input" />
+				<span class="field-label">Business name</span>
+				<input name="business" value={val('business', me.business)} class="field-input" />
 				{#if errors.business}<p class="field-error">{errors.business}</p>{/if}
 			</label>
 			<div class="sm:col-span-2">
-				<IndustryField value={val('industry', me.industry)} error={errors.industry} />
+				<IndustryField value={val('industry', me.industry)} error={errors.industry} optional />
 			</div>
+			<div>
+				<span class="field-label">Chapter</span>
+				<input
+					value="{me.hub} · {me.memberNumber}"
+					disabled
+					class="field-input bg-ivory-100 text-stone-muted"
+				/>
+				<span class="mt-1.5 block text-xs text-stone-muted"
+					>Ask the secretariat to change your chapter.</span
+				>
+			</div>
+			<label class="block">
+				<span class="field-label">Instagram</span>
+				<input
+					name="instagram"
+					value={val('instagram', me.instagram)}
+					placeholder="@yourbusiness"
+					class="field-input"
+				/>
+				{#if errors.instagram}<p class="field-error">{errors.instagram}</p>{/if}
+			</label>
 			<label class="block">
 				<span class="field-label">City</span>
 				<input name="city" value={val('city', me.city)} class="field-input" />

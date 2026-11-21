@@ -33,7 +33,7 @@
 					<h1 class="display text-4xl">{m.name}</h1>
 					<p class="mt-1 text-ink-700">{m.designation ? `${m.designation}, ` : ''}{m.business}</p>
 					<p class="text-sm text-stone-muted">
-						{m.hub} hub · {m.industry}{m.city ? ` · ${m.city}` : ''} · {m.memberNumber}
+						{m.hub} hub{m.industry ? ` · ${m.industry}` : ''}{m.city ? ` · ${m.city}` : ''} · {m.memberNumber}
 					</p>
 				</div>
 			</div>

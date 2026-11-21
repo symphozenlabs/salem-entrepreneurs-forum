@@ -46,11 +46,12 @@ export const entryKinds: Record<string, string> = {
  * An admin can also set a member's level by hand.
  */
 export const levels = [
-	{ key: 'bronze', label: 'Bronze', min: 0, about: 'Starting level — active participation' },
-	{ key: 'silver', label: 'Silver', min: 1_000, about: 'Regular participation and networking' },
-	{ key: 'gold', label: 'Gold', min: 2_500, about: 'Consistent contribution and referrals' },
-	{ key: 'platinum', label: 'Platinum', min: 5_000, about: 'Highly active community contributor' },
-	{ key: 'diamond', label: 'Diamond', min: 10_000, about: 'Exceptional loyalty and leadership' }
+	{ key: 'basic', label: 'Basic', min: 0, about: 'Every member starts here' },
+	{ key: 'bronze', label: 'Bronze', min: 1_500, about: 'Active participation' },
+	{ key: 'silver', label: 'Silver', min: 3_500, about: 'Regular participation and networking' },
+	{ key: 'gold', label: 'Gold', min: 6_000, about: 'Consistent contribution and referrals' },
+	{ key: 'platinum', label: 'Platinum', min: 8_500, about: 'Highly active community contributor' },
+	{ key: 'diamond', label: 'Diamond', min: 12_000, about: 'Exceptional loyalty and leadership' }
 ] as const;
 
 export type Level = (typeof levels)[number];
@@ -59,6 +60,7 @@ export const isLevelKey = (v: unknown): v is LevelKey => levels.some((l) => l.ke
 
 /** Badge colours per level. */
 export const levelTone: Record<LevelKey, string> = {
+	basic: 'bg-ink-900/5 text-ink-700',
 	bronze: 'bg-[#f3e3d3] text-[#8a5a2b]',
 	silver: 'bg-slate-100 text-slate-700',
 	gold: 'bg-amber-100 text-amber-800',
@@ -66,7 +68,7 @@ export const levelTone: Record<LevelKey, string> = {
 	diamond: 'bg-emerald-100 text-emerald-800'
 };
 
-/** "0–999 points", "10,000+ points" */
+/** "0–1,499 points", "12,000+ points" */
 export function levelRange(l: Level) {
 	const i = levels.findIndex((x) => x.key === l.key);
 	const next = levels[i + 1];

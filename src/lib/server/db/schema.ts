@@ -192,7 +192,7 @@ export const memberProfile = pgTable('member_profile', {
 	phone: text('phone').notNull(),
 	business: text('business').notNull(),
 	industry: text('industry').notNull(),
-	/** Loyalty level an admin set by hand (bronze…diamond); empty = by points. */
+	/** Loyalty level an admin set by hand (basic…diamond); empty = by points. */
 	level: text('level'),
 	designation: text('designation'),
 	city: text('city'),
