@@ -3,6 +3,7 @@ import { db } from '#lib/server/db/index.ts';
 import { siteSetting } from '#lib/server/db/schema.ts';
 import { defaultMembership, type Membership } from '#lib/content.ts';
 import type { PaymentInfo } from '#lib/membership.ts';
+import { defaultActivityPoints, type ActivityPoints } from '#lib/loyalty.ts';
 
 async function read<T>(key: string): Promise<{ value: T; updatedAt: Date } | undefined> {
 	const [row] = await db
@@ -100,3 +101,20 @@ export async function getPosterCount() {
 	}
 }
 export const savePosterCount = (value: string) => write('poster-member-count', value);
+
+// ---- Loyalty activity points -----------------------------------------------------
+
+/** The standard points for each activity: the admin's, or the original amounts. */
+export async function getActivityPoints(): Promise<ActivityPoints> {
+	const defaults = defaultActivityPoints();
+	try {
+		const saved = (await read<ActivityPoints>('activity-points'))?.value ?? {};
+		return Object.fromEntries(
+			Object.entries(defaults).map(([k, v]) => [k, Number.isInteger(saved[k]) ? saved[k] : v])
+		);
+	} catch (e) {
+		console.error('[settings] activity points unavailable:', e);
+		return defaults;
+	}
+}
+export const saveActivityPoints = (value: ActivityPoints) => write('activity-points', value);

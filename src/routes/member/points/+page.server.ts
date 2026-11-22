@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { paginate } from '#lib/paging.ts';
+import { getActivityPoints } from '#lib/server/settings.ts';
 import {
 	cancelRedemption,
 	myRedemptions,
@@ -12,13 +13,14 @@ import {
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const me = locals.user!.id;
 	await syncAutoPoints();
-	const [summary, history, requests] = await Promise.all([
+	const [summary, history, requests, activityPoints] = await Promise.all([
 		pointsSummary(me),
 		pointsHistory(me),
-		myRedemptions(me)
+		myRedemptions(me),
+		getActivityPoints()
 	]);
 	const { items, pager } = paginate(history, url, 15);
-	return { summary, history: items, pager, requests };
+	return { summary, history: items, pager, requests, activityPoints };
 };
 
 export const actions: Actions = {

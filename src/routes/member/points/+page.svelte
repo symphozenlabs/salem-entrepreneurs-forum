@@ -13,7 +13,8 @@
 		nextReward,
 		pts,
 		redemptionStatus,
-		rewards
+		rewards,
+		standardActivities
 	} from '#lib/loyalty.ts';
 	import Pagination from '#lib/components/Pagination.svelte';
 
@@ -253,9 +254,10 @@
 			</ul>
 			<p class="mt-4 text-xs font-semibold tracking-wide text-stone-muted uppercase">Earn</p>
 			<ul class="mt-1 space-y-1">
-				{#each Object.values(activities).filter((a) => a.points) as a (a.label)}
+				{#each standardActivities as k (k)}
 					<li class="flex justify-between gap-3">
-						<span>{a.label}</span><span class="text-stone-muted tabular-nums">+{pts(a.points)}</span
+						<span>{activities[k].label}</span><span class="text-stone-muted tabular-nums"
+							>+{pts(data.activityPoints[k])}</span
 						>
 					</li>
 				{/each}
