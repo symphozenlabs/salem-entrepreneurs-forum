@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
-	import { Award, Check, Search, X } from '@lucide/svelte';
+	import { Award, Check, Pencil, Search, X } from '@lucide/svelte';
 	import { eventShortDate } from '#lib/events.ts';
 	import {
 		activities,
@@ -10,8 +11,10 @@
 		levelRange,
 		levels,
 		levelTone,
+		MAX_ACTIVITY_POINTS,
 		pts,
 		redemptionStatus,
+		standardActivities,
 		type Activity
 	} from '#lib/loyalty.ts';
 	import { hubs } from '#lib/network.ts';
@@ -46,7 +49,9 @@
 
 	// ---- Award form ----
 	let kind = $state<Activity | 'adjustment'>('meeting');
-	let points = $state<number>(activities.meeting.points);
+	let points = $state<number>(untrack(() => data.activityPoints.meeting));
+	let editingRates = $state(false);
+	let savingRates = $state(false);
 	const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 	let picked = $state<string[]>([]);
 	let find = $state('');
@@ -69,7 +74,7 @@
 
 	function chooseKind(k: Activity | 'adjustment') {
 		kind = k;
-		if (k !== 'adjustment' && activities[k].points) points = activities[k].points;
+		if (k !== 'adjustment' && data.activityPoints[k]) points = data.activityPoints[k];
 	}
 	function toggleShown() {
 		const ids = shown.map((m) => m.id);
@@ -96,10 +101,11 @@
 		<div>
 			<p class="text-xs font-semibold tracking-wide text-stone-muted uppercase">Earning</p>
 			<ul class="mt-2 space-y-1">
-				{#each Object.values(activities).filter((a) => a.points) as a (a.label)}
+				{#each standardActivities as k (k)}
+					{@const a = activities[k]}
 					<li class="flex justify-between gap-3">
 						<span>{a.label}{'once' in a ? ' (once)' : ''}</span>
-						<span class="text-stone-muted tabular-nums">+{pts(a.points)}</span>
+						<span class="text-stone-muted tabular-nums">+{pts(data.activityPoints[k])}</span>
 					</li>
 				{/each}
 			</ul>
@@ -215,7 +221,7 @@
 							{#if rejecting === r.id}
 								<form
 									method="POST"
-									action="?/reject"
+									action="?view={data.view}&/reject"
 									use:enhance={act(r.id)}
 									class="flex flex-wrap gap-2"
 								>
@@ -233,7 +239,7 @@
 								</form>
 							{:else}
 								<div class="flex flex-wrap gap-2">
-									<form method="POST" action="?/approve" use:enhance={act(r.id)}>
+									<form method="POST" action="?view={data.view}&/approve" use:enhance={act(r.id)}>
 										<input type="hidden" name="id" value={r.id} />
 										<button disabled={busy === r.id || !enough} class="btn-primary">
 											<Check class="size-4" />
@@ -310,7 +316,7 @@
 						<td class="px-5 py-3">
 							<form
 								method="POST"
-								action="?/level"
+								action="?view={data.view}&/level"
 								use:enhance={act(-2)}
 								class="flex items-center gap-2"
 							>
@@ -408,7 +414,7 @@
 							{#if e.kind !== 'redemption'}
 								<form
 									method="POST"
-									action={e.voidedAt ? '?/restore' : '?/void'}
+									action={`?view=log&/${e.voidedAt ? 'restore' : 'void'}`}
 									use:enhance={act(e.id)}
 								>
 									<input type="hidden" name="id" value={e.id} />
@@ -433,8 +439,25 @@
 	<Pagination pager={data.pager} />
 {:else if data.view === 'award'}
 	<form
+		id="activity-rates"
 		method="POST"
-		action="?/award"
+		action="?view={data.view}&/rates"
+		use:enhance={() => {
+			savingRates = true;
+			return async ({ result, update }) => {
+				await update({ reset: false });
+				savingRates = false;
+				if (result.type === 'success') {
+					editingRates = false;
+					if (kind !== 'adjustment' && data.activityPoints[kind])
+						points = data.activityPoints[kind];
+				}
+			};
+		}}
+	></form>
+	<form
+		method="POST"
+		action="?view={data.view}&/award"
 		use:enhance={() => {
 			busy = -1;
 			return async ({ result, update }) => {
@@ -447,8 +470,52 @@
 	>
 		<div class="space-y-5 rounded-lg border border-ink-900/10 bg-white p-5">
 			<fieldset>
-				<legend class="field-label">Activity *</legend>
-				<div class="mt-2 grid gap-1.5">
+				<legend class="field-label flex w-full items-center justify-between">
+					<span>Activity *</span>
+					{#if !editingRates}
+						<button
+							type="button"
+							onclick={() => (editingRates = true)}
+							class="inline-flex items-center gap-1 font-semibold text-brass-600 hover:underline"
+							><Pencil class="size-3.5" /> Edit points</button
+						>
+					{/if}
+				</legend>
+				{#if editingRates}
+					<div class="mt-2 grid gap-1.5">
+						{#each standardActivities as k (k)}
+							<label
+								class="flex items-center justify-between gap-3 rounded-md border border-ink-900/10 px-3 py-1.5 text-sm"
+							>
+								<span>{activities[k].label}</span>
+								<input
+									form="activity-rates"
+									type="number"
+									name="rate-{k}"
+									required
+									min="1"
+									max={MAX_ACTIVITY_POINTS}
+									step="1"
+									value={data.activityPoints[k]}
+									aria-label="Points for {activities[k].label}"
+									class="w-24 rounded border border-ink-900/15 px-2 py-1 text-right tabular-nums"
+								/>
+							</label>
+						{/each}
+					</div>
+					<p class="mt-2 text-xs text-stone-muted">
+						New amounts apply to future awards. Points already given stay the same.
+					</p>
+					<div class="mt-3 flex gap-2">
+						<button form="activity-rates" disabled={savingRates} class="btn-primary !py-2"
+							>{savingRates ? 'Saving…' : 'Save points'}</button
+						>
+						<button type="button" onclick={() => (editingRates = false)} class="btn-quiet !py-2"
+							>Cancel</button
+						>
+					</div>
+				{/if}
+				<div class="mt-2 grid gap-1.5" class:hidden={editingRates}>
 					{#each Object.entries(activities) as [k, a] (k)}
 						<label
 							class="flex cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-sm {kind ===
@@ -466,7 +533,9 @@
 								/>
 								{a.label}
 							</span>
-							{#if a.points}<span class="text-stone-muted">+{a.points}</span>{/if}
+							{#if data.activityPoints[k]}<span class="text-stone-muted"
+									>+{pts(data.activityPoints[k])}</span
+								>{/if}
 						</label>
 					{/each}
 					<label
@@ -523,7 +592,7 @@
 				/>
 			</label>
 
-			<button disabled={busy === -1 || !picked.length} class="btn-primary w-full">
+			<button disabled={busy === -1 || !picked.length || editingRates} class="btn-primary w-full">
 				<Award class="size-4" />
 				{busy === -1
 					? 'Saving…'

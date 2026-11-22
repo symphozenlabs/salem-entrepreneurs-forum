@@ -23,6 +23,15 @@ export const isActivity = (v: unknown): v is Activity =>
 	typeof v === 'string' && Object.hasOwn(activities, v);
 export const isOnce = (k: string) => isActivity(k) && 'once' in activities[k];
 
+/** The activities with a standard amount, which an admin can change. */
+export const standardActivities = (Object.keys(activities) as Activity[]).filter(
+	(k) => activities[k].points > 0
+);
+export type ActivityPoints = Record<string, number>;
+export const defaultActivityPoints = (): ActivityPoints =>
+	Object.fromEntries(standardActivities.map((k) => [k, activities[k].points]));
+export const MAX_ACTIVITY_POINTS = 100_000;
+
 /** Kinds from the earlier, automatic points rules, so old history still reads well. */
 const earlierKinds: Record<string, string> = {
 	referral: 'Business referral',
