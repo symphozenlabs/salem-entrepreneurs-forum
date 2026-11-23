@@ -6,18 +6,23 @@
 	import { rupees } from '#lib/content.ts';
 	import { eventShortDate } from '#lib/events.ts';
 	import MemberCard from '#lib/components/MemberCard.svelte';
+	import { isLifetimeMember, profileCompletion } from '#lib/membership.ts';
 
 	let { data }: PageProps = $props();
 
+	const lifetime = $derived(isLifetimeMember(data.me.expiresAt));
 	const validTill = $derived(
-		new Intl.DateTimeFormat('en-IN', {
-			month: '2-digit',
-			year: '2-digit',
-			timeZone: 'Asia/Kolkata'
-		})
-			.format(data.me.expiresAt)
-			.replace('/', ' / ')
+		lifetime
+			? 'LIFETIME'
+			: new Intl.DateTimeFormat('en-IN', {
+					month: '2-digit',
+					year: '2-digit',
+					timeZone: 'Asia/Kolkata'
+				})
+					.format(data.me.expiresAt)
+					.replace('/', ' / ')
 	);
+	const completion = $derived(profileCompletion(data.me));
 	const stats = $derived([
 		...(data.features.connects
 			? [
@@ -91,22 +96,38 @@
 	</p>
 {/if}
 
-{#if !data.me.business || !data.me.industry}
-	<p class="mb-8 rounded-md bg-brass-200/40 px-4 py-3 text-sm text-ink-900" role="status">
-		Your profile is missing your {!data.me.business && !data.me.industry
-			? 'business and category'
-			: !data.me.business
-				? 'business name'
-				: 'category'}. <a href="/member/profile" class="font-semibold underline">Add it now</a> so members
-		can find you.
-	</p>
-{/if}
-
 <p class="eyebrow text-brass-600">Overview</p>
 <h1 class="display mt-2 text-4xl">Hello, {data.me.name.split(' ')[0]}.</h1>
 
 <div class="mt-10 grid gap-10 xl:grid-cols-[1fr_24rem]">
 	<div class="space-y-10">
+		<section class="rounded-lg border border-ink-900/10 bg-white p-5 sm:p-6">
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<h2 class="font-semibold">Profile completion</h2>
+					<p class="mt-1 text-sm text-stone-muted">
+						{completion.missing.length
+							? `Still to add: ${completion.missing.slice(0, 3).join(', ')}${completion.missing.length > 3 ? ` and ${completion.missing.length - 3} more` : ''}`
+							: 'Your profile is complete.'}
+					</p>
+				</div>
+				<p class="display text-3xl text-brass-600">{completion.percent}%</p>
+			</div>
+			<div
+				class="mt-4 h-2.5 overflow-hidden rounded-full bg-ink-900/10"
+				role="progressbar"
+				aria-label="Profile completion"
+				aria-valuemin="0"
+				aria-valuemax="100"
+				aria-valuenow={completion.percent}
+			>
+				<div class="h-full rounded-full bg-brass-400" style="width: {completion.percent}%"></div>
+			</div>
+			{#if completion.missing.length}
+				<a href="/member/profile" class="btn-primary mt-4">Complete my profile</a>
+			{/if}
+		</section>
+
 		{#if stats.length}
 			<section>
 				<h2 class="text-sm font-semibold tracking-wide text-ink-700">My performance</h2>
@@ -182,12 +203,13 @@
 			name={data.me.name}
 			number={data.me.memberNumber}
 			{validTill}
-			industry={[data.me.industry, data.me.business].filter(Boolean).join(' · ')}
+			category={data.me.industry}
+			business={data.me.business}
 		/>
 		<p class="mt-4 text-center text-sm text-stone-muted">
-			Member since {eventShortDate(data.me.joinedAt)} · valid till {eventShortDate(
-				data.me.expiresAt
-			)}
+			Member since {eventShortDate(data.me.joinedAt)} · {lifetime
+				? 'Lifetime'
+				: `valid till ${eventShortDate(data.me.expiresAt)}`}
 		</p>
 		{#if data.points}
 			{@const points = data.points}

@@ -1,5 +1,6 @@
 import { count, eq } from 'drizzle-orm';
 import type { LayoutServerLoad } from './$types';
+import { pendingCategories } from '#lib/server/categories.ts';
 import { db } from '#lib/server/db/index.ts';
 import {
 	contactMessage,
@@ -13,7 +14,7 @@ const safeCount = (q: Promise<{ n: number }[]>) => q.then(([r]) => r.n).catch(()
 
 // Access is enforced in hooks.server.ts; this only feeds the shell.
 export const load: LayoutServerLoad = async ({ locals }) => {
-	const [openEnquiries, pendingApplications, pendingPayments, pendingRedemptions] =
+	const [openEnquiries, pendingApplications, pendingPayments, pendingRedemptions, categories] =
 		await Promise.all([
 			safeCount(
 				db.select({ n: count() }).from(contactMessage).where(eq(contactMessage.handled, false))
@@ -31,13 +32,15 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 					.select({ n: count() })
 					.from(loyaltyRedemption)
 					.where(eq(loyaltyRedemption.status, 'pending'))
-			)
+			),
+			pendingCategories().catch(() => [])
 		]);
 	return {
 		me: { id: locals.user!.id, name: locals.user!.name, email: locals.user!.email },
 		openEnquiries,
 		pendingApplications,
 		pendingPayments,
-		pendingRedemptions
+		pendingRedemptions,
+		pendingCategories: categories.length
 	};
 };

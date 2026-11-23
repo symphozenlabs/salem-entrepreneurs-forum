@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { directory, directoryStats } from '#lib/server/network.ts';
+import { getCategories } from '#lib/server/categories.ts';
 
 /** Members per page in each view. */
 const PER_PAGE = { grid: 12, list: 25 } as const;
@@ -16,11 +17,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Members are listed only once the visitor searches (an empty search lists everyone),
 	// filters, or asks to browse all; the bare page shows just the numbers and the search.
 	const searched = all || url.searchParams.has('q') || !!industry || !!hub;
+	const categories = await getCategories();
 	const [result, stats] = await Promise.all([
 		searched
 			? directory(
 					locals.user!.id,
-					{ q, industry, hub },
+					{ q, industry, hub, listed: categories },
 					{ limit: perPage, offset: (requested - 1) * perPage }
 				)
 			: null,
@@ -45,7 +47,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		view,
 		searched,
 		stats,
-		industries: stats.industries,
+		industries: [...categories, 'Other'],
 		q,
 		industry,
 		hub

@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { and, eq, ne, sql } from 'drizzle-orm';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
+import { getCategories, listedName } from '#lib/server/categories.ts';
 import { db } from '#lib/server/db/index.ts';
 import { memberPhoto, memberProfile, user } from '#lib/server/db/schema.ts';
 import { readImage } from '#lib/server/uploads.ts';
@@ -30,6 +31,8 @@ const FIELDS = [
 	'mapUrl'
 ] as const;
 
+export const load: PageServerLoad = async () => ({ categories: await getCategories() });
+
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		const me = locals.user!.id;
@@ -44,7 +47,7 @@ export const actions: Actions = {
 		v.email = v.email.toLowerCase();
 		if (v.email && (!isEmail(v.email) || isPhoneLogin(v.email)))
 			errors.email = 'Enter a valid email, or leave it blank to sign in with your mobile number.';
-		v.industry = industryFrom(data);
+		v.industry = listedName(industryFrom(data), await getCategories());
 		const instagram = v.instagram ? instagramUrl(v.instagram) : null;
 		if (v.instagram && !instagram)
 			errors.instagram = 'Enter your Instagram handle or profile link.';

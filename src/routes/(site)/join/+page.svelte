@@ -167,7 +167,11 @@
 					{#if errors.hub}<p class="field-error">{errors.hub}</p>{/if}
 				</fieldset>
 				<div class="sm:col-span-2">
-					<IndustryField value={values.industry} error={errors.industry} />
+					<IndustryField
+						value={values.industry}
+						error={errors.industry}
+						options={data.categories}
+					/>
 				</div>
 				<div class="sm:col-span-2">
 					<span class="field-label">Your photo</span>

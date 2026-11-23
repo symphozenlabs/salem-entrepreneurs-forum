@@ -4,7 +4,7 @@
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 	import { eventShortDate } from '#lib/events.ts';
-	import { isPhoneLogin, loginId, membershipStatus } from '#lib/membership.ts';
+	import { isLifetimeMember, isPhoneLogin, loginId, membershipStatus } from '#lib/membership.ts';
 	import CredentialsNotice from '#lib/components/admin/CredentialsNotice.svelte';
 	import IndustryField from '#lib/components/IndustryField.svelte';
 	import { ArrowDown, ArrowUp, Download, Upload, UserPlus, X } from '@lucide/svelte';
@@ -188,7 +188,11 @@
 				</label>
 			{/each}
 			<div class="sm:col-span-2">
-				<IndustryField value={val('industry')} error={err('industry')} />
+				<IndustryField
+					value={val('industry')}
+					error={err('industry')}
+					options={data.categoryOptions}
+				/>
 			</div>
 			<label class="block">
 				<span class="field-label">Hub *</span>
@@ -440,7 +444,9 @@
 								>{label[s.state]}</span
 							>
 							<span class="mt-1 block text-xs text-stone-muted"
-								>Since {eventShortDate(m.joinedAt)} · till {eventShortDate(m.expiresAt)}</span
+								>Since {eventShortDate(m.joinedAt)} · {isLifetimeMember(m.expiresAt)
+									? 'Lifetime'
+									: `till ${eventShortDate(m.expiresAt)}`}</span
 							>
 						</td>
 						<td class="px-4 py-4">

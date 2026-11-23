@@ -14,6 +14,7 @@
 		LogOut,
 		Menu,
 		ShieldCheck,
+		Tags,
 		ToggleRight,
 		X
 	} from '@lucide/svelte';
@@ -45,6 +46,12 @@
 		},
 		{ href: '/admin/enquiries', label: 'Enquiries', icon: Inbox, badge: data.openEnquiries },
 		{ href: '/admin/membership', label: 'Membership & payment', icon: IndianRupee },
+		{
+			href: '/admin/categories',
+			label: 'Categories',
+			icon: Tags,
+			badge: data.pendingCategories
+		},
 		{ href: '/admin/features', label: 'Member features', icon: ToggleRight },
 		{ href: '/admin/admins', label: 'Admins & account', icon: ShieldCheck }
 	]);

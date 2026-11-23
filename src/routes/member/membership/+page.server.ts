@@ -2,12 +2,12 @@ import { fail } from '@sveltejs/kit';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '#lib/server/db/index.ts';
-import { memberPoster, payment, paymentProof } from '#lib/server/db/schema.ts';
+import { memberPoster, memberProfile, payment, paymentProof } from '#lib/server/db/schema.ts';
 import { getMembership, getPayment } from '#lib/server/settings.ts';
 import { upiQrSvg } from '#lib/server/qr.ts';
 import { utrInUse } from '#lib/server/members.ts';
 import { readImage } from '#lib/server/uploads.ts';
-import { cleanUtr, isUtr } from '#lib/membership.ts';
+import { cleanUtr, isLifetimeMember, isUtr } from '#lib/membership.ts';
 
 const myPayments = (userId: string) =>
 	db
@@ -49,6 +49,15 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 export const actions: Actions = {
 	renew: async ({ request, locals }) => {
 		const me = locals.user!.id;
+		const [profile] = await db
+			.select({ expiresAt: memberProfile.expiresAt })
+			.from(memberProfile)
+			.where(eq(memberProfile.userId, me));
+		if (profile && isLifetimeMember(profile.expiresAt))
+			return fail(400, {
+				utr: '',
+				error: 'Your membership is for life, so there’s nothing to renew.'
+			});
 		const data = await request.formData();
 		const utr = cleanUtr(String(data.get('utr') ?? ''));
 		if (!isUtr(utr))
