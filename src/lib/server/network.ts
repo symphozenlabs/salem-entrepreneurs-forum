@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, ilike, lt, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, ilike, lt, lte, ne, or, sql, notInArray } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { getFeatures } from '#lib/server/settings.ts';
 import {
@@ -92,14 +92,18 @@ const escapeLike = (q: string) => `%${q.replace(/[%_\\]/g, '\\$&')}%`;
 /** One page of the directory, plus how many members match in all. */
 export async function directory(
 	me: string,
-	filters: { q: string; industry: string; hub: string },
+	filters: { q: string; industry: string; hub: string; listed?: string[] },
 	page: { limit: number; offset: number }
 ): Promise<{ members: DirectoryMember[]; total: number }> {
 	const term = filters.q ? escapeLike(filters.q) : null;
 	const where = and(
 		listed(),
 		ne(memberProfile.userId, me),
-		filters.industry ? eq(memberProfile.industry, filters.industry) : undefined,
+		filters.industry === 'Other' && filters.listed
+			? and(ne(memberProfile.industry, ''), notInArray(memberProfile.industry, filters.listed))
+			: filters.industry
+				? eq(memberProfile.industry, filters.industry)
+				: undefined,
 		filters.hub ? eq(memberProfile.hub, filters.hub) : undefined,
 		term
 			? or(

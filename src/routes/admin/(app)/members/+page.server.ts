@@ -8,6 +8,7 @@ import { addMember, emailLogin, resetMemberPassword } from '#lib/server/members.
 import { checkMember, readMembersCsv, type Raw } from '#lib/server/member-import.ts';
 import { industryFrom, RENEWAL_WINDOW_DAYS } from '#lib/membership.ts';
 import { firstImportAt, markFirstImport } from '#lib/server/settings.ts';
+import { getCategories, listedName } from '#lib/server/categories.ts';
 import { isHub } from '#lib/network.ts';
 
 const SORTS = ['number', 'name', 'hub', 'business', 'contact', 'joined', 'expires'] as const;
@@ -94,6 +95,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		sort,
 		dir: dir === 1 ? ('asc' as const) : ('desc' as const),
 		categories,
+		categoryOptions: await getCategories(),
 		hasBlankCategory: all.some((m) => !m.industry),
 		totalMembers: all.length,
 		firstImportDone: !!(await firstImportAt())
@@ -119,7 +121,7 @@ export const actions: Actions = {
 		const raw = Object.fromEntries(
 			FIELDS.map((k) => [k, String(data.get(k) ?? '')])
 		) as Partial<Raw>;
-		raw.industry = industryFrom(data);
+		raw.industry = listedName(industryFrom(data), await getCategories());
 		const checked = checkMember(raw);
 		if (!checked.ok)
 			return fail(400, {
@@ -157,8 +159,12 @@ export const actions: Actions = {
 		// One at a time, so member numbers follow the order above; emails go out afterwards.
 		const added = [];
 		const failed: string[] = [];
+		const listed = await getCategories();
 		for (const m of read.members) {
-			const r = await addMember(m, { email: false });
+			const r = await addMember(
+				{ ...m, industry: m.industry && listedName(m.industry, listed) },
+				{ email: false }
+			);
 			if (r.error !== undefined) failed.push(r.error);
 			else added.push({ ...r.credentials, phone: m.phone, memberNumber: r.memberNumber });
 		}

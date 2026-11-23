@@ -16,13 +16,19 @@ import { utrInUse } from '#lib/server/members.ts';
 import { readImage } from '#lib/server/uploads.ts';
 import { isEmail, safeUrl } from '#lib/server/admin.ts';
 import { cleanUtr, industryFrom, instagramUrl, isUtr } from '#lib/membership.ts';
+import { getCategories, listedName } from '#lib/server/categories.ts';
 
 export const load: PageServerLoad = async () => {
-	const [membership, paymentInfo] = await Promise.all([getMembership(), getPayment()]);
+	const [membership, paymentInfo, categories] = await Promise.all([
+		getMembership(),
+		getPayment(),
+		getCategories()
+	]);
 	const note = 'SEF membership';
 	return {
 		membership,
 		payment: paymentInfo,
+		categories,
 		note,
 		qrSvg: await upiQrSvg(paymentInfo, membership.fee, note)
 	};
@@ -64,7 +70,7 @@ export const actions: Actions = {
 		if (v.phone.replace(/\D/g, '').length < 10) errors.phone = 'Enter a 10-digit mobile number.';
 		if (!v.business) errors.business = 'Enter your business name.';
 		if (!isHub(v.hub)) errors.hub = 'Choose your hub.';
-		v.industry = industryFrom(data);
+		v.industry = listedName(industryFrom(data), await getCategories());
 		if (!v.industry)
 			errors.industry =
 				data.get('industry') === 'Other' ? 'Type your category.' : 'Choose your category.';

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { categories } from '#lib/categories.ts';
 
 	/**
 	 * The member's business category (form field `industry`, stored in the `industry` columns):
@@ -10,10 +9,11 @@
 	let {
 		value = '',
 		error = '',
-		optional = false
-	}: { value?: string; error?: string; optional?: boolean } = $props();
+		optional = false,
+		options
+	}: { value?: string; error?: string; optional?: boolean; options: string[] } = $props();
 
-	const listed: readonly string[] = categories;
+	const listed = untrack(() => options);
 	const initial = untrack(() => value);
 	let choice = $state(!initial ? '' : listed.includes(initial) ? initial : 'Other');
 	let other = $state(listed.includes(initial) ? '' : initial);
@@ -42,6 +42,11 @@
 				class="field-input"
 			/>
 		</label>
+	{/if}
+	{#if choice === 'Other'}
+		<p class="text-xs text-stone-muted sm:col-span-2">
+			We’ll add this to the category list once the admin approves it.
+		</p>
 	{/if}
 	{#if error}<p class="field-error sm:col-span-2">{error}</p>{/if}
 </div>

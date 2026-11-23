@@ -4,11 +4,10 @@
 	import type { PageProps } from './$types';
 	import IndustryField from '#lib/components/IndustryField.svelte';
 	import { photoUrl } from '#lib/network.ts';
-	import { shrinkImageInput } from '#lib/image.ts';
+	import PhotoAdjuster from '#lib/components/member/PhotoAdjuster.svelte';
 
 	let { data, form }: PageProps = $props();
 	let busy = $state(false);
-	let preview = $state<string | null>(null);
 	let removePhoto = $state(false);
 
 	const me = $derived(data.me);
@@ -16,7 +15,6 @@
 	const errors = $derived((form?.errors ?? {}) as Record<string, string>);
 	const val = (k: string, fallback: string | null) => v[k] ?? fallback ?? '';
 	const current = $derived(photoUrl(me));
-	const shown = $derived(preview ?? (removePhoto ? null : current));
 </script>
 
 <p class="eyebrow text-brass-600">My profile</p>
@@ -30,7 +28,6 @@
 		return async ({ update }) => {
 			await update({ reset: false });
 			busy = false;
-			preview = null;
 		};
 	}}
 	class="mt-8 grid gap-8 xl:grid-cols-[1fr_20rem]"
@@ -82,7 +79,12 @@
 				{#if errors.business}<p class="field-error">{errors.business}</p>{/if}
 			</label>
 			<div class="sm:col-span-2">
-				<IndustryField value={val('industry', me.industry)} error={errors.industry} optional />
+				<IndustryField
+					value={val('industry', me.industry)}
+					error={errors.industry}
+					options={data.categories}
+					optional
+				/>
 			</div>
 			<div>
 				<span class="field-label">Chapter</span>
@@ -180,21 +182,11 @@
 	<div class="space-y-6">
 		<div class="rounded-lg border border-ink-900/10 bg-white p-5">
 			<span class="field-label">Photo</span>
-			<div class="mx-auto mt-3 size-36 overflow-hidden rounded-full bg-ink-900">
-				{#if shown}<img src={shown} alt="" class="h-full w-full object-cover" />{/if}
-			</div>
-			<input
-				name="photo"
-				type="file"
-				accept="image/jpeg,image/png,image/webp"
-				onchange={async (e) => {
-					removePhoto = false;
-					preview = (await shrinkImageInput(e.currentTarget, 600))?.preview ?? null;
-				}}
-				class="mt-4 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-ink-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-ivory-50"
-			/>
+			{#key current}
+				<PhotoAdjuster {current} removed={removePhoto} onchosen={() => (removePhoto = false)} />
+			{/key}
 			{#if errors.photo}<p class="field-error">{errors.photo}</p>{/if}
-			{#if current && !preview}
+			{#if current}
 				<label class="mt-3 flex items-center gap-2 text-sm">
 					<input
 						type="checkbox"

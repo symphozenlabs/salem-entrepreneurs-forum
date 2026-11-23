@@ -54,6 +54,10 @@ export function membershipStatus(expiresAt: Date, now = new Date()) {
 	return { state: 'active' as const, days };
 }
 
+/** Lifetime members' memberships run a century, so anything this far off is for life. */
+export const isLifetimeMember = (expiresAt: Date, now = new Date()) =>
+	expiresAt.getTime() - now.getTime() > 50 * 365 * DAY;
+
 /** A one-time fee for life: the admin's period reads "Lifetime" (or similar). */
 export const isLifetime = (period: string) => /life/i.test(period);
 
@@ -76,6 +80,44 @@ export function addMonths(d: Date, months: number) {
 	const r = new Date(d);
 	r.setMonth(r.getMonth() + months);
 	return r;
+}
+
+/** How complete a profile is. The website is left out, as not every business has one. */
+export function profileCompletion(m: {
+	name: string;
+	email: string;
+	phone: string;
+	photoVersion: number | null;
+	designation: string | null;
+	business: string;
+	industry: string;
+	city: string | null;
+	instagram: string | null;
+	address: string | null;
+	about: string | null;
+	offerings: string | null;
+	lookingFor: string | null;
+}) {
+	const items: [string, unknown][] = [
+		['Name', m.name],
+		['Mobile number', m.phone],
+		['Email', !isPhoneLogin(m.email)],
+		['Photo', m.photoVersion],
+		['Your role', m.designation],
+		['Business name', m.business],
+		['Category', m.industry],
+		['City', m.city],
+		['Instagram', m.instagram],
+		['Business address', m.address],
+		['About your business', m.about],
+		['What you offer', m.offerings],
+		['What you’re looking for', m.lookingFor]
+	];
+	const missing = items.filter(([, v]) => !v).map(([label]) => label);
+	return {
+		percent: Math.round(((items.length - missing.length) / items.length) * 100),
+		missing
+	};
 }
 
 /** Statuses as shown to people. */

@@ -5,12 +5,22 @@
 
 	const forum = $derived(activeForum());
 
-	type Props = { name?: string; number?: string; validTill?: string; industry?: string };
+	type Props = {
+		name?: string;
+		number?: string;
+		validTill?: string;
+		industry?: string;
+		/** Shown as a highlighted label, with the business under it. */
+		category?: string;
+		business?: string;
+	};
 	let {
 		name = 'Your Name',
 		number = `${activeForum().brand.short} · 0151`,
 		validTill = '12 / 27',
-		industry = `Founder · ${activeForum().brand.place}`
+		industry = `Founder · ${activeForum().brand.place}`,
+		category = '',
+		business = ''
 	}: Props = $props();
 
 	let card: HTMLDivElement;
@@ -72,9 +82,20 @@
 				>
 			</div>
 			<div class="flex items-end justify-between gap-4">
-				<div>
+				<div class="min-w-0">
 					<p class="display text-2xl sm:text-3xl">{name}</p>
-					<p class="mt-1 text-xs text-ivory-200/60">{industry}</p>
+					{#if category || business}
+						{#if category}
+							<p
+								class="mt-1.5 inline-block max-w-full truncate rounded-full bg-brass-300 px-2.5 py-0.5 align-top text-[0.68rem] font-semibold text-ink-950"
+							>
+								{category}
+							</p>
+						{/if}
+						{#if business}<p class="mt-1 truncate text-xs text-ivory-200/70">{business}</p>{/if}
+					{:else}
+						<p class="mt-1 text-xs text-ivory-200/60">{industry}</p>
+					{/if}
 					<div class="mt-4 flex gap-6 font-mono text-[0.7rem] tracking-widest text-brass-200">
 						<span>{number}</span>
 						<span>VALID {validTill}</span>
